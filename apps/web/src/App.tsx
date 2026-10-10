@@ -146,8 +146,9 @@ import { About } from './screens/About';
 function Shell() {
   const { screen } = useApp();
   const key = screen === 'journal' || screen === 'bloom' ? screen : screen;
+  const immersive = screen === 'pocket' || screen === 'proof';
   return (
-    <div className={`app ${screen === 'pocket' ? 'app--pocket' : ''}`}>
+    <div className={`app ${immersive ? 'app--night' : ''}`}>
       <div className="screen" key={key}>
         {screen === 'boot' && <Boot />}
         {screen === 'home' && <Home />}

@@ -4,8 +4,16 @@
   min-height: 100dvh;
 }
 
-.app--pocket {
+.app--night {
   background: var(--night);
+}
+
+/* pocket & proof take the whole screen — no strip animation, their own fade */
+.app--night .screen {
+  animation: none;
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .screen {
@@ -514,6 +522,12 @@
   gap: 16px;
   padding: 24px;
   z-index: 40;
+  animation: nightIn 0.35s ease both;
+}
+
+@keyframes nightIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .pocket__exit {
@@ -587,6 +601,7 @@
   background: var(--night);
   z-index: 45;
   overflow: hidden;
+  animation: nightIn 0.35s ease both;
 }
 
 .proof__video {
@@ -995,4 +1010,27 @@
   .seed__title { font-size: 22px; }
   .door__title { font-size: 28px; }
   .bloom__stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── desktop dressing — the field guide lies open on the desk ── */
+
+@media (min-width: 760px) {
+  body {
+    background: radial-gradient(100% 80% at 50% 6%, #fdf8ec 0%, var(--paper) 46%, #e7dcc0 100%);
+  }
+
+  .screen {
+    background: linear-gradient(180deg, rgba(255, 253, 247, 0.6) 0%, rgba(255, 252, 243, 0.28) 100%);
+    border-left: 1.5px solid rgba(34, 48, 31, 0.16);
+    border-right: 1.5px solid rgba(34, 48, 31, 0.16);
+    box-shadow: 0 0 56px rgba(34, 48, 31, 0.08);
+  }
+
+  .nav {
+    border-left: 1.5px solid rgba(34, 48, 31, 0.16);
+    border-right: 1.5px solid rgba(34, 48, 31, 0.16);
+  }
+
+  .sheet { align-items: center; }
+  .sheet__card { border-radius: var(--r2); margin: 20px; }
 }
