@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  node:
+    name: agent + web (node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: build web (tsc + vite)
+        run: npm run build -w apps/web
+      - name: build agent (tsc)
+        run: npm run build -w services/agent
+      - name: test agent (vitest)
+        run: npm run test -w services/agent
+
+  python:
+    name: grass window (python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: install deploy deps + pytest
+        run: pip install -r services/tabpfn/requirements.txt pytest
+      - name: test (model tests self-skip without TABPFN_TOKEN)
+        run: python -m pytest -q services/tabpfn/tests

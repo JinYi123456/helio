@@ -1,0 +1,15 @@
+{
+  "name": "Helio — proof of grass",
+  "short_name": "Helio",
+  "description": "An offline-first AI that sends you outside, then verifies with a local open-weight model that you actually went.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#141a12",
+  "theme_color": "#141a12",
+  "icons": [
+    { "src": "/icons/helio.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/helio-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

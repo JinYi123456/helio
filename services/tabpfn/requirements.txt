@@ -1,0 +1,12 @@
+# Deploy-only requirements (used by Render and the CI test job).
+#
+# Not listed on purpose: tabpfn / torch. Free hosts are 512MB RAM — the
+# model never runs there. The service serves windows baked by the daily
+# GitHub Action and degrades to open-meteo + heuristic scoring otherwise.
+# Local development and baking use pyproject.toml (uv sync).
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pandas>=2.2
+numpy>=1.26
+httpx>=0.27
+pydantic>=2.7

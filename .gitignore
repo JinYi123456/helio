@@ -1,0 +1,29 @@
+node_modules/
+dist/
+build/
+coverage/
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example
+
+# private handoff material — never shipped
+_private/
+
+# python
+services/tabpfn/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# generated at runtime / build
+services/agent/audio-cache/
+*.local
+.vite/
+.DS_Store
+Thumbs.db
+
+# screenshot capture profile
+.cache/

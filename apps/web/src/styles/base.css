@@ -1,0 +1,101 @@
+/* Helio — design tokens + reset. A field-guide zine you can carry. */
+
+:root {
+  --paper: #f6f1e3;
+  --paper2: #efe7d2;
+  --ink: #22301f;
+  --ink2: #57684d;
+  --moss: #3f6b3a;
+  --moss2: #63965a;
+  --moss3: #d9e3c6;
+  --sun: #e8a33d;
+  --sun2: #ffd27a;
+  --clay: #c96f3b;
+  --night: #1d2419;
+  --danger: #a8433a;
+
+  --font-d: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+  --font-b: 'Space Grotesk Variable', 'Space Grotesk', system-ui, sans-serif;
+  --font-m: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+
+  --r: 18px;
+  --r2: 26px;
+  --shadow: 0 12px 32px rgba(34, 48, 31, 0.13);
+  --shadow-soft: 0 4px 14px rgba(34, 48, 31, 0.09);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  font-family: var(--font-b);
+  color: var(--ink);
+  background:
+    radial-gradient(120% 90% at 50% 0%, #fdf9ee 0%, var(--paper) 55%, #eee6d0 100%);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-d);
+  font-weight: 640;
+  letter-spacing: -0.015em;
+  line-height: 1.12;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input, select {
+  font-family: inherit;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* film grain — the whole app reads like printed paper */
+#grain {
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--sun2);
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

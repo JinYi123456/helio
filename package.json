@@ -1,0 +1,25 @@
+{
+  "name": "helio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Helio — the open-source AI that gets you off the screen and into the world. Proof of grass, verified by a local open-weight model.",
+  "license": "MIT",
+  "workspaces": [
+    "apps/web",
+    "services/agent"
+  ],
+  "scripts": {
+    "dev": "concurrently -n AGENT,WEB -c green,cyan \"npm run dev -w services/agent\" \"npm run dev -w apps/web\"",
+    "dev:agent": "npm run dev -w services/agent",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "build:all": "npm run build -w apps/web && npm run build -w services/agent",
+    "start": "npm run start -w services/agent",
+    "test": "npm run test -w services/agent",
+    "test:py": "uv run --project services/tabpfn pytest -q services/tabpfn/tests"
+  },
+  "devDependencies": {
+    "concurrently": "latest",
+    "puppeteer-core": "^25.13.0"
+  }
+}

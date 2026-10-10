@@ -1,0 +1,60 @@
+# Helio on Render — two free web services, zero paid anything.
+#
+#   helio-agent   Node + Hono + Mastra. Serves the API and the built PWA.
+#   helio-tabpfn  Python + FastAPI. Serves precomputed grass windows and can
+#                 score live open-meteo forecasts — see app/precompute.py.
+#
+# The TabPFN service deliberately does NOT install torch/tabpfn here: free
+# instances are 512MB. The daily GitHub Action (bake-windows) bakes fresh
+# windows with the real model and commits them; the service serves them.
+# Without weights it still works — heuristic scoring keeps it honest.
+
+services:
+  - type: web
+    name: helio-agent
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build -w apps/web && npm run build -w services/agent
+    startCommand: npm run start -w services/agent
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: SERVE_WEB
+        value: "1"
+      # hosted open-weight model — any of these four providers works.
+      # Google AI Studio has a free tier for Gemma: https://aistudio.google.com/apikey
+      - key: HELIO_PROVIDER
+        value: google
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GOOGLE_MODEL
+        value: gemma-4-31b-it
+      - key: TABPFN_URL
+        fromService:
+          type: web
+          name: helio-tabpfn
+          envVarKey: RENDER_EXTERNAL_URL
+      # optional partner tech — helio degrades gracefully without any of these
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        value: 21m00Tcm4TlvDq8ikWAM
+      - key: SERPAPI_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: helio
+      - key: SENTRY_DSN
+        sync: false
+
+  - type: web
+    name: helio-tabpfn
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r services/tabpfn/requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir services/tabpfn
+    healthCheckPath: /health
