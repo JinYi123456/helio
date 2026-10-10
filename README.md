@@ -68,7 +68,7 @@ working, honestly labelled:
 | **ElevenLabs** | whisper text-to-speech, cached to disk | browser speech synthesis |
 | **SerpApi** | "what's in season right now" ground notes | skipped, whisper stays local |
 | **MongoDB Atlas** | field memory with `$vectorSearch` over walk notes | in-memory ring buffer |
-| **Sentry** | span tracing around mission compile + error capture | no telemetry |
+| **Sentry** | AI agent tracing — runtime instrumentation turns every mission compile into a `gen_ai.invoke_agent → gen_ai.chat` trace with token usage | no telemetry |
 | **open-meteo** | 10y history + live forecast (free, no key) | bundled CSVs |
 
 ## Quickstart (5 minutes, zero cost)

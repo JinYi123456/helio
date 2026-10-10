@@ -54,7 +54,7 @@ the agent session looked like — this is it, in order.
   `createOpenAICompatible(...).chatModel(id)` cast to `MastraLanguageModel`.
 - Everything optional: ElevenLabs whisper (hashed disk cache → 204 → browser voice),
   SerpApi ground notes (12h cache), MongoDB memory (`$vectorSearch` when configured, RAM
-  otherwise), Sentry spans around the compile path.
+  otherwise), Sentry agent tracing (see 07).
 
 ## 05 · web PWA
 
@@ -75,3 +75,24 @@ so the demo link never dies.
 
 Total partner surface: TabPFN · Ollama/Gemma · Mastra · Google AI Studio (hosted demo) ·
 ElevenLabs · SerpApi · MongoDB · Sentry. Core promise: photos never leave the device.
+
+## 07 · sentry agent tracing (the one that looked free)
+
+- One line — `mastraIntegration()` — should give full `gen_ai` traces. It gave zero. Two
+  hidden requirements, both found by probing with a dummy DSN and a capture transport
+  (`scripts/sentry-probe.ts`; nothing leaves the machine).
+- **Dead end #5**: Node reads an ESM module graph *before* any module body runs, so
+  `init()` called from app code registers Sentry's runtime-instrumentation hooks after
+  `@mastra/core` has already loaded — and already-loaded modules are never instrumented.
+  Fix: `node --import ./scripts/sentry-preload.mjs`, a 4-line preload gated on
+  `SENTRY_DSN`, so without a DSN Sentry never enters the process at all.
+- **Dead end #6**: a standalone Mastra `Agent` emits nothing to an exporter on its own.
+  The span exporter attaches when a `Mastra` instance is constructed (with
+  `@mastra/observability` bootstrapping the pipeline). So the same agent now also lives
+  in `new Mastra({ agents })`, built only when tracing is configured.
+- Result, verified against exactly what Render runs (`node dist/index.js`, Node 24):
+  every mission compile is one trace —
+  `http.server → mission.compile → gen_ai.invoke_agent → gen_ai.chat → http.client` —
+  with model name, input messages and token usage riding along as `gen_ai.*` attributes.
+- The knob that made this debuggable stays in: `HELIO_SENTRY_DEBUG=1` prints span
+  lifecycles to the server log.

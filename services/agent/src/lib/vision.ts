@@ -1,5 +1,6 @@
 import { config, llmEndpoint } from '../config.js';
 import { ollamaChat, ollamaReachable } from './ollama.js';
+import { withSpan } from './sentry.js';
 import { clamp, fetchWithTimeout, looseJson } from './util.js';
 
 export type Verdict = {
@@ -114,14 +115,25 @@ export async function verifyPhoto(
   const b64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
   const prompt = buildPrompt(mission);
 
-  if (config.provider === 'ollama') {
-    return viaOllama(b64, prompt);
-  }
-  const hosted = await viaOpenAiCompat(dataUrl, prompt);
-  if (hosted) return hosted;
-  // Hosted vision fell over — a local Ollama still gives a verdict.
-  if (await ollamaReachable()) {
-    return viaOllama(b64, prompt);
-  }
-  return null;
+  return withSpan(
+    'proof.verify',
+    'gen_ai.chat',
+    async () => {
+      if (config.provider === 'ollama') {
+        return viaOllama(b64, prompt);
+      }
+      const hosted = await viaOpenAiCompat(dataUrl, prompt);
+      if (hosted) return hosted;
+      // Hosted vision fell over — a local Ollama still gives a verdict.
+      if (await ollamaReachable()) {
+        return viaOllama(b64, prompt);
+      }
+      return null;
+    },
+    {
+      'gen_ai.system': config.provider,
+      'gen_ai.request.model': config.visionModel,
+      'helio.mission': mission.title,
+    }
+  );
 }

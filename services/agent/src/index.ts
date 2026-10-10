@@ -1,3 +1,4 @@
+import './instrument.js';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -5,14 +6,14 @@ import { fileURLToPath } from 'node:url';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
-import { config, engineLabel } from './config.js';
+import { config, engineLabel, llmEndpoint } from './config.js';
 import { writeHaiku } from './lib/journal.js';
 import { memoryKind, recentWalks, rememberWalk, similarWalks } from './lib/memory.js';
 import { compileMission } from './lib/mission-agent.js';
 import { ollamaReachable } from './lib/ollama.js';
 import { seedMission } from './lib/seeds.js';
 import { localGround } from './lib/serpapi.js';
-import { captureException, initSentry, sentryEnabled, withSpan } from './lib/sentry.js';
+import { captureException, sentryEnabled, withSpan } from './lib/sentry.js';
 import { audioFile, ensureAudio } from './lib/tts.js';
 import { fetchWindow, type DayWindow } from './lib/window.js';
 import { verifyPhoto } from './lib/vision.js';
@@ -24,7 +25,6 @@ const CITY_LABELS: Record<string, string> = {
 };
 
 const app = new Hono();
-void initSentry();
 
 app.use('*', async (c, next) => {
   const t0 = performance.now();
@@ -90,54 +90,60 @@ app.post('/api/mission', async (c) => {
   const envs = body.envs?.length ? body.envs : ['street', 'park', 'garden'];
   const dateKey = body.dateKey || new Date().toISOString().slice(0, 10);
 
-  const mission = await withSpan('mission.compile', 'agent', async () => {
-    const [win, ground, memory] = await Promise.all([
-      fetchWindow(cityKey, 7),
-      localGround(cityLabel, Number(dateKey.slice(5, 7)), envs),
-      recentWalks(cityKey, 6),
-    ]);
+  const p = llmEndpoint();
+  const mission = await withSpan(
+    'mission.compile',
+    'agent',
+    async () => {
+      const [win, ground, memory] = await Promise.all([
+        fetchWindow(cityKey, 7),
+        localGround(cityLabel, Number(dateKey.slice(5, 7)), envs),
+        recentWalks(cityKey, 6),
+      ]);
 
-    const week: DayWindow[] = win?.days ?? [];
-    const today = week.find((d) => d.date === dateKey) ?? week[0] ?? null;
+      const week: DayWindow[] = win?.days ?? [];
+      const today = week.find((d) => d.date === dateKey) ?? week[0] ?? null;
 
-    const report = {
-      cityKey,
-      cityLabel,
-      dateKey,
-      name: body.name,
-      envs,
-      history: body.history ?? [],
-      window: today,
-      week,
-      ground: ground.length ? ground : memory.slice(0, 2).map((m) => `${m.missionTitle} — ${m.seen ?? 'logged'}`),
-      memory: memory.map((m) => ({ dateKey: m.dateKey, missionTitle: m.missionTitle, seen: m.seen })),
-    };
+      const report = {
+        cityKey,
+        cityLabel,
+        dateKey,
+        name: body.name,
+        envs,
+        history: body.history ?? [],
+        window: today,
+        week,
+        ground: ground.length ? ground : memory.slice(0, 2).map((m) => `${m.missionTitle} — ${m.seen ?? 'logged'}`),
+        memory: memory.map((m) => ({ dateKey: m.dateKey, missionTitle: m.missionTitle, seen: m.seen })),
+      };
 
-    const draft = await compileMission(report, Boolean(body.regenerate));
-    const chosen =
-      draft ??
-      seedMission({ dateKey, cityKey, envs, variant: body.regenerate ? 1 : 0, window: today });
+      const draft = await compileMission(report, Boolean(body.regenerate));
+      const chosen =
+        draft ??
+        seedMission({ dateKey, cityKey, envs, variant: body.regenerate ? 1 : 0, window: today });
 
-    const usedModel = Boolean(draft);
-    const audioUrl = await ensureAudio(chosen.whisper);
+      const usedModel = Boolean(draft);
+      const audioUrl = await ensureAudio(chosen.whisper);
 
-    return {
-      id: crypto.randomUUID(),
-      dateKey,
-      createdAt: Date.now(),
-      title: chosen.title,
-      whisper: chosen.whisper,
-      proofCriteria: chosen.proofCriteria,
-      proofHint: chosen.proofHint,
-      durationMin: chosen.durationMin,
-      tags: chosen.tags,
-      whyNow: chosen.whyNow,
-      window: today,
-      engine: usedModel ? engineLabel() : 'hand-written seed · open data (offline-safe)',
-      groundNotes: ground,
-      audioUrl,
-    };
-  });
+      return {
+        id: crypto.randomUUID(),
+        dateKey,
+        createdAt: Date.now(),
+        title: chosen.title,
+        whisper: chosen.whisper,
+        proofCriteria: chosen.proofCriteria,
+        proofHint: chosen.proofHint,
+        durationMin: chosen.durationMin,
+        tags: chosen.tags,
+        whyNow: chosen.whyNow,
+        window: today,
+        engine: usedModel ? engineLabel() : 'hand-written seed · open data (offline-safe)',
+        groundNotes: ground,
+        audioUrl,
+      };
+    },
+    { 'gen_ai.system': p.name, 'gen_ai.request.model': p.model, 'helio.city': cityLabel }
+  );
 
   return c.json(mission);
 });
@@ -150,13 +156,12 @@ app.post('/api/verify', async (c) => {
     | null;
   if (!body?.mission?.title || !body.image) return c.json({ error: 'need mission + image' }, 400);
 
-  const verdict = await withSpan('proof.verify', 'vision', () =>
-    verifyPhoto(body.image!, {
-      title: body.mission!.title!,
-      proofCriteria: body.mission!.proofCriteria || body.mission!.title!,
-      tags: body.mission!.tags ?? [],
-    })
-  );
+  // verifyPhoto carries its own gen_ai span (shared with /api/sync).
+  const verdict = await verifyPhoto(body.image!, {
+    title: body.mission!.title!,
+    proofCriteria: body.mission!.proofCriteria || body.mission!.title!,
+    tags: body.mission!.tags ?? [],
+  });
   if (!verdict) return c.json({ error: 'no vision model reachable — keep your proof, we will check later' }, 503);
   return c.json(verdict);
 });

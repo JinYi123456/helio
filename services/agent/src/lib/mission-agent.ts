@@ -1,7 +1,9 @@
+import { Mastra } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { z } from 'zod';
 import { buildMastraModel, chatText, providerReady } from './llm.js';
 import { TAG_VOCAB } from './seeds.js';
+import { sentryEnabled } from './sentry.js';
 import { fieldTools } from './tools.js';
 import { clamp, looseJson } from './util.js';
 import type { DayWindow } from './window.js';
@@ -35,6 +37,13 @@ export const missionAgent = new Agent({
   model: () => buildMastraModel(),
   tools: fieldTools,
 });
+
+/**
+ * Sentry's Mastra integration attaches its span exporter when a Mastra
+ * instance is constructed — a standalone Agent emits nothing on its own.
+ * Only built when tracing is configured, so the default path stays lean.
+ */
+export const helioMastra = sentryEnabled() ? new Mastra({ agents: { missionCompiler: missionAgent } }) : null;
 
 export type MissionReport = {
   cityKey: string;

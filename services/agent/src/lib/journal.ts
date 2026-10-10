@@ -1,4 +1,6 @@
+import { llmEndpoint } from '../config.js';
 import { chatText, providerReady } from './llm.js';
+import { withSpan } from './sentry.js';
 import { hashStr, mulberry32, pick } from './util.js';
 
 const FALLBACK_HAIKU: string[][] = [
@@ -18,20 +20,27 @@ export async function writeHaiku(input: {
   dateKey: string;
 }): Promise<{ haiku: string; engine: string }> {
   if (providerReady()) {
-    const text = await chatText(
-      [
-        {
-          role: 'user',
-          content: [
-            'Write a haiku about this exact moment from a short walk.',
-            `Mission: ${input.missionTitle}`,
-            `What the walker saw: ${input.seen}`,
-            `Themes: ${input.tags.join(', ')}`,
-            'Rules: exactly 3 lines, 5-7-5 syllables, concrete images, lowercase ok, no title, no quotes, no explanation.',
-          ].join('\n'),
-        },
-      ],
-      { temperature: 0.9, maxTokens: 90 }
+    const p = llmEndpoint();
+    const text = await withSpan(
+      'journal.haiku',
+      'gen_ai.chat',
+      () =>
+        chatText(
+          [
+            {
+              role: 'user',
+              content: [
+                'Write a haiku about this exact moment from a short walk.',
+                `Mission: ${input.missionTitle}`,
+                `What the walker saw: ${input.seen}`,
+                `Themes: ${input.tags.join(', ')}`,
+                'Rules: exactly 3 lines, 5-7-5 syllables, concrete images, lowercase ok, no title, no quotes, no explanation.',
+              ].join('\n'),
+            },
+          ],
+          { temperature: 0.9, maxTokens: 90 }
+        ),
+      { 'gen_ai.system': p.name, 'gen_ai.request.model': p.model }
     );
     if (text) {
       const lines = text

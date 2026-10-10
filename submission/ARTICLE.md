@@ -159,6 +159,33 @@ photo, verdict, weather, stamp, tags:
    live forecasts when it can, and keeps heuristic scoring as the floor. Zero paid
    anything, honest `served` field on every response so you always know which layer
    answered.
+6. **Sentry's "one-line" Mastra integration silently did nothing.** Node reads an ESM
+   module graph *before* any module body runs, so `init()` called from app code lands
+   after `@mastra/core` has already loaded — and already-loaded modules are never
+   instrumented. The fix that made it real: a four-line, DSN-gated
+   `node --import` preload, plus a constructed `Mastra` instance (a lone `Agent` emits
+   nothing to an exporter). Verified against exactly what Render runs: every compile is
+   now one `gen_ai` trace with token usage — and with no DSN, Sentry never enters the
+   process at all.
+
+## What It Can't Do (Yet)
+
+Honest limits, because the meadow only grows on verified walks:
+
+- **It can't prove *you* took the photo.** The vision check verifies content, not
+  authorship — no location attestation, no sensor checks. A determined cheater with a
+  stock photo of moss could still fool it. Helio is a nudge with a memory, not a cop.
+- **The hosted demo covers three cities.** The model itself takes any city; Petaling
+  Jaya, Seattle and Zürich are what the free-tier bake keeps fresh.
+- **The deployed window service serves precomputed scores.** Torch doesn't fit a 512MB
+  free instance, so the real model runs in the daily GitHub Action bake and the service
+  recomputes live forecasts on top — the `served` field always tells you which layer
+  answered.
+- **On-device verdicts take ~45 seconds on CPU.** That's the honest price of the photo
+  never leaving your machine. The hosted demo uses cloud Gemma instead; locally, put the
+  kettle on while it judges your grass.
+- **No accounts, no cross-device sync** unless you point it at MongoDB Atlas; photos and
+  logs live in your browser's IndexedDB, exportable and burnable by you.
 
 ## Why Does Open Innovation Matter?
 
@@ -217,7 +244,7 @@ them degrades gracefully when absent — try removing any):
 | **ElevenLabs** | Whisper TTS for missions, disk-cached; falls back to browser speech. |
 | **SerpApi** | "What's in season right now" ground notes folded into missions. |
 | **MongoDB Atlas** | Field memory over walk notes — `$vectorSearch` when configured, RAM otherwise. |
-| **Sentry** | Agent tracing: spans around mission compile, error capture on the API. |
+| **Sentry** | Real agent tracing: a DSN-gated `--import` preload wires runtime instrumentation, so every mission compile lands in Sentry as one trace — `http.server → mission.compile → gen_ai.invoke_agent → gen_ai.chat → http.client` — with model name, input messages and token usage as `gen_ai.*` attributes. API errors are captured too. |
 | **Tinker** | *In progress* — a LoRA on helio's whisper voice via Tinker's free credits. |
 | **Temporal** | *Investigating* — durable mission lifecycle orchestration. |
 | **Tiger Data** | *Investigating* — time-series walk history. |

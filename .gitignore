@@ -27,3 +27,4 @@ Thumbs.db
 
 # screenshot capture profile
 .cache/
+services/agent/sentry-probe-envelopes.txt

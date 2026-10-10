@@ -20,7 +20,7 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
-        value: "22"
+        value: "24"
       - key: SERVE_WEB
         value: "1"
       # hosted open-weight model — any of these four providers works.
