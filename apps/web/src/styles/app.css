@@ -1015,7 +1015,7 @@
 /* ── desktop dressing — the field guide lies open on the desk ── */
 
 @media (min-width: 760px) {
-  body {
+  body::before {
     background: radial-gradient(100% 80% at 50% 6%, #fdf8ec 0%, var(--paper) 46%, #e7dcc0 100%);
   }
 

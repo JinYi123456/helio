@@ -41,11 +41,19 @@ html {
   background: var(--paper);
 }
 
+/* the desk — a viewport-fixed backdrop, so the paper never seams mid-scroll */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 0%, #fdf9ee 0%, var(--paper) 55%, #eee6d0 100%);
+}
+
 body {
   font-family: var(--font-b);
   color: var(--ink);
-  background:
-    radial-gradient(120% 90% at 50% 0%, #fdf9ee 0%, var(--paper) 55%, #eee6d0 100%);
   font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
