@@ -1,6 +1,6 @@
 # Helio: an open-weight AI that makes you touch grass — and refuses to believe you did
 
-*Week 1 of the DEV × Hacktoberfest Open-Source AI Challenge: Touch Grass.*
+*This is a submission for the [Hacktoberfest Open-Source AI Challenge Week 1: Touch Grass](https://dev.to/challenges/hacktoberfest-week1-2026-10-05)*
 
 <!-- TAGS: #devchallenge #hf26challenge #hacktoberfest #softwaredevelopment -->
 
