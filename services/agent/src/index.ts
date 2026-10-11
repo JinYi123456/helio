@@ -8,8 +8,8 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { config, engineLabel, llmEndpoint } from './config.js';
 import { pickGoldenHour } from './lib/golden.js';
-import { writeHaiku } from './lib/journal.js';
-import { resolvedTextModel } from './lib/llm.js';
+import { writeHaiku, haikuPrompt } from './lib/journal.js';
+import { chatOnceDebug, resolvedTextModel } from './lib/llm.js';
 import { memoryKind, recentWalks, rememberWalk, similarWalks } from './lib/memory.js';
 import { footprintSeries, recordFootprint, tigerEnabled, tigerStatus } from './lib/tiger.js';
 import { compileMission } from './lib/mission-agent.js';
@@ -219,6 +219,19 @@ app.get('/api/_diag/vision', async (c) => {
     else attempts.push({ model, status: res.status, body: (await res.text()).slice(0, 240) });
   }
   return c.json({ provider: p.name, model: p.model, candidates, attempts });
+});
+
+/* ── hosted text probe (?go=1) — one raw haiku attempt, why-did-it-fall-back ── */
+
+app.get('/api/_diag/haiku', async (c) => {
+  if (c.req.query('go') !== '1') return c.json({ hint: 'append ?go=1' });
+  const prompt = haikuPrompt({
+    missionTitle: c.req.query('title') || 'Damp green edges',
+    tags: (c.req.query('tags') || 'sprout').split(','),
+    seen: c.req.query('seen') || 'a young sprout between pavement cracks, and a wet leaf',
+  });
+  const attempt = await chatOnceDebug([{ role: 'user', content: prompt }], { temperature: 0.9, maxTokens: 1000 });
+  return c.json(attempt);
 });
 
 /* ── durable mission lifecycle (Temporal) ───────────────────────────── */

@@ -121,6 +121,55 @@ export async function chatText(
   return null;
 }
 
+/** Raw one-shot chat for the diagnostics route — status, finish reason, usage, content. */
+export async function chatOnceDebug(
+  messages: ChatMessage[],
+  opts: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {}
+): Promise<Record<string, unknown>> {
+  const p = llmEndpoint();
+  const model = await ensureTextModel();
+  let status = 0;
+  let body = '';
+  try {
+    const res = await fetchWithTimeout(
+      `${p.baseURL.replace(/\/$/, '')}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(p.apiKey ? { authorization: `Bearer ${p.apiKey}` } : {}),
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature: opts.temperature ?? 0.8,
+          max_tokens: opts.maxTokens ?? 400,
+          ...(p.suppressThinking ? { reasoning_effort: 'none' } : {}),
+        }),
+      },
+      opts.timeoutMs ?? 120_000
+    );
+    status = res.status;
+    body = await res.text();
+  } catch (e) {
+    return { provider: p.name, model, error: e instanceof Error ? e.message : 'unreachable' };
+  }
+  let parsed: { choices?: { finish_reason?: string; message?: { content?: string } }[]; usage?: unknown } | null = null;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    /* keep raw for the report below */
+  }
+  return {
+    provider: p.name,
+    model,
+    status,
+    finish: parsed?.choices?.[0]?.finish_reason,
+    usage: parsed?.usage,
+    content: parsed?.choices?.[0]?.message?.content ?? body.slice(0, 1500),
+  };
+}
+
 /**
  * The Mastra-facing model. We hand Mastra an AI-SDK provider built over the
  * configured endpoint; for Ollama we splice `reasoning_effort:"none"` into

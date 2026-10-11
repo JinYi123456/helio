@@ -13,6 +13,16 @@ const FALLBACK_HAIKU: string[][] = [
   ['moss growing on walls', 'softer than any plan you made', 'green does not hurry'],
 ];
 
+export function haikuPrompt(input: { missionTitle: string; tags: string[]; seen: string }): string {
+  return [
+    'Write a haiku about this exact moment from a short walk.',
+    `Mission: ${input.missionTitle}`,
+    `What the walker saw: ${input.seen}`,
+    `Themes: ${input.tags.join(', ')}`,
+    'Rules: exactly 3 lines, 5-7-5 syllables, concrete images, lowercase ok, no title, no quotes, no explanation.',
+  ].join('\n');
+}
+
 export async function writeHaiku(input: {
   missionTitle: string;
   tags: string[];
@@ -29,13 +39,7 @@ export async function writeHaiku(input: {
           [
             {
               role: 'user',
-              content: [
-                'Write a haiku about this exact moment from a short walk.',
-                `Mission: ${input.missionTitle}`,
-                `What the walker saw: ${input.seen}`,
-                `Themes: ${input.tags.join(', ')}`,
-                'Rules: exactly 3 lines, 5-7-5 syllables, concrete images, lowercase ok, no title, no quotes, no explanation.',
-              ].join('\n'),
+              content: haikuPrompt(input),
             },
           ],
           // Thinking models burn much of the budget on <thought> before the poem.
