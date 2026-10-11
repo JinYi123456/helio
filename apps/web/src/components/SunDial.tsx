@@ -121,10 +121,14 @@ export function SunDial({ windows, lat, lon, state, onOpen }: Props) {
 
         <g transform={`translate(${CX}, ${CY})`}>
           <circle r="74" fill="var(--paper)" stroke="var(--ink)" strokeOpacity="0.14" />
-          <g className="dial__sprout" transform="translate(-24,-34) scale(2.0)">
-            <path d="M24 34 C 24 26, 24 22, 24 18" stroke="var(--moss)" strokeWidth="2.6" fill="none" strokeLinecap="round" />
-            <path d="M24 24 C 18 22, 16 15, 17.5 10 C 23 12, 25 18, 24 24 Z" fill="var(--moss)" />
-            <path d="M24 24 C 30 22, 32 15, 30.5 10 C 25 12, 23 18, 24 24 Z" fill="var(--moss2)" />
+          {/* outer g positions the sprout; the animated CSS transform lives on the
+              inner g, or it would override the positioning transform entirely */}
+          <g transform="translate(-24,-34) scale(2.0)">
+            <g className="dial__sprout">
+              <path d="M24 34 C 24 26, 24 22, 24 18" stroke="var(--moss)" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+              <path d="M24 24 C 18 22, 16 15, 17.5 10 C 23 12, 25 18, 24 24 Z" fill="var(--moss)" />
+              <path d="M24 24 C 30 22, 32 15, 30.5 10 C 25 12, 23 18, 24 24 Z" fill="var(--moss2)" />
+            </g>
           </g>
           <text y="16" textAnchor="middle" className="dial__state">
             {state === 'bloomed' ? 'bloomed' : state === 'ready' ? 'a seed waits' : 'ask for a seed'}

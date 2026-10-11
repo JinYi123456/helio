@@ -22,7 +22,10 @@
   min-height: 100dvh;
   padding: 14px 16px 98px;
   position: relative;
-  animation: screenIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  /* fill backwards, not forwards: a finished transform animation still counts
+     as a containing block for position:fixed children (the bottom nav, the
+     journal sheet), which strands them at the bottom of the page */
+  animation: screenIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
 }
 
 @keyframes screenIn {
@@ -341,11 +344,12 @@
   to { opacity: 1; }
 }
 
-.dial__sprout { animation: sway 5s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+/* fill-box: rotate around the sprout's own bottom, not the SVG view-box origin */
+.dial__sprout { animation: sway 5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
 
 @keyframes sway {
-  from { transform: translate(-24px, -34px) scale(2) rotate(-2.5deg); }
-  to { transform: translate(-24px, -34px) scale(2) rotate(2.5deg); }
+  from { transform: rotate(-2.5deg); }
+  to { transform: rotate(2.5deg); }
 }
 
 .dial__state {

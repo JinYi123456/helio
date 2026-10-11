@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useApp } from '../App';
 import { CITIES } from '../lib/types';
+import { nearestCity } from '../lib/geo';
 import { api } from '../lib/api';
 import * as db from '../lib/db';
-import { IconDownload, IconGear, IconRefresh, IconTrash } from '../components/Icons';
+import { IconDownload, IconGear, IconPin, IconRefresh, IconTrash } from '../components/Icons';
 
 const ENVS = ['street', 'park', 'garden', 'trail', 'waterside', 'balcony'];
 
@@ -11,11 +12,40 @@ export function SettingsScreen() {
   const { settings, setSettings, health, walks, go } = useApp();
   const [test, setTest] = useState<string | null>(null);
   const [packed, setPacked] = useState<string | null>(null);
+  const [locate, setLocate] = useState<string | null>(null);
 
   const toggleEnv = (e: string) => {
     const has = settings.envs.includes(e);
     const next = has ? settings.envs.filter((x) => x !== e) : [...settings.envs, e];
     setSettings({ ...settings, envs: next.length ? next : settings.envs });
+  };
+
+  const useMyLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocate('this page has no location access (needs https or localhost) — pick a city below');
+      return;
+    }
+    setLocate('asking the sky…');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { city, km } = nearestCity(pos.coords.latitude, pos.coords.longitude);
+        setSettings({ ...settings, cityKey: city.key });
+        const d = Math.round(km);
+        setLocate(
+          d < 50
+            ? `found you — ${city.label}, ${d} km away. dial + seeds follow your sky now.`
+            : `you're ${d} km from ${city.label}, the nearest baked city — weather history ships per city, so this is the closest honest sky.`
+        );
+      },
+      (err) => {
+        setLocate(
+          err.code === 1
+            ? 'location declined — pick a city below; the dial works fully offline.'
+            : "couldn't get a fix — pick a city below."
+        );
+      },
+      { timeout: 10_000, maximumAge: 600_000 }
+    );
   };
 
   const runTest = async () => {
@@ -87,6 +117,12 @@ export function SettingsScreen() {
             ))}
           </select>
         </label>
+        <div className="row">
+          <button className="btn btn--quiet" onClick={useMyLocation}>
+            <IconPin size={16} /> use my location
+          </button>
+        </div>
+        {locate && <p className="note">{locate}</p>}
         <div className="field">
           <span>places within reach <small>(seeds respect these)</small></span>
           <div className="chips">

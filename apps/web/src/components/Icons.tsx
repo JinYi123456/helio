@@ -54,3 +54,6 @@ export const IconTrash = (p: P) => (
 export const IconDownload = (p: P) => (
   <svg {...S(p)}><path d="M12 4v10M8 10l4 4 4-4" /><path d="M5 18h14" /></svg>
 );
+export const IconPin = (p: P) => (
+  <svg {...S(p)}><path d="M12 21.5c4.2-4.6 6.3-8 6.3-10.9a6.3 6.3 0 1 0-12.6 0c0 2.9 2.1 6.3 6.3 10.9z" /><circle cx="12" cy="10.5" r="2.3" /></svg>
+);

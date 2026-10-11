@@ -16,7 +16,7 @@
     "build:all": "npm run build -w apps/web && npm run build -w services/agent",
     "start": "npm run start -w services/agent",
     "test": "npm run test -w services/agent",
-    "test:py": "uv run --project services/tabpfn pytest -q services/tabpfn/tests"
+    "test:py": "uv run --project services/tabpfn python -m pytest -q services/tabpfn/tests"
   },
   "devDependencies": {
     "concurrently": "latest",

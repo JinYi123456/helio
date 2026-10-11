@@ -18,9 +18,7 @@ export function SeedCard({ mission }: { mission: Mission }) {
       <footer className="seed__meta">
         <span>{mission.durationMin} min</span>
         {mission.window && (
-          <span className="seed__window">
-            ☀ {mission.window.weekday} · {Math.round(mission.window.score)}/100
-          </span>
+          <span className="seed__window">☀ {mission.window.label}</span>
         )}
         <span className="seed__engine">{mission.engine.split('·')[0].trim()}</span>
       </footer>
