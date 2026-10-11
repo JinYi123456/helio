@@ -197,11 +197,12 @@ Honest limits, because the meadow only grows on verified walks:
 - **The hosted demo answers for any coordinates, but only three skies are pre-baked.**
   *Use my location* reverse-geocodes where you are: within 50 km of a baked city you get
   that city's sky with an honest distance note; anywhere else Helio rounds your
-  coordinates to three decimals and keys the whole pipeline off them — live forecast,
-  a two-year climate archive fetched on demand, percentile-derived label rules. With
-  Torch on your machine that sky scores on the real model; on the free-tier host it
-  falls back to the heuristic chain, and the `served` field always says which layer
-  answered.
+  coordinates to three decimals and keys the whole pipeline off them — a two-year
+  climate archive fetched on demand, percentile-derived label rules, and a live
+  forecast whenever the free forecast endpoint will answer a datacenter IP (archived
+  climatology for your exact coordinates when it won't). With Torch on your machine
+  that sky scores on the real model; on the free-tier host it falls back to the
+  heuristic chain, and the `served` field always says which layer answered.
 - **The deployed window service serves precomputed scores.** Torch doesn't fit a 512MB
   free instance, so the real model runs in the daily GitHub Action bake and the service
   recomputes live forecasts on top of it.
