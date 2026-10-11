@@ -50,7 +50,7 @@ also survives the wrong photo. Try your keyboard.)*
 
 - **Live:** https://helio-agent.onrender.com (free Render instance — first load may take ~1 min to wake)
 - **Repo:** https://github.com/JinYi123456/helio
-- **60-second walkthrough:** [helio-demo.mp4](https://github.com/JinYi123456/helio/blob/main/submission/assets/helio-demo.mp4) — the whole loop recorded live: the mission compiled by Gemma, held on a Temporal timer, the photo verified on-device, the meadow grown
+- **70-second walkthrough:** [helio-demo.mp4](https://github.com/JinYi123456/helio/blob/main/submission/assets/helio-demo.mp4) — the whole loop recorded live: the mission compiled by Gemma, held on a Temporal timer, the photo verified on-device, the meadow grown
 - 90-second local run:
 
 ```bash
