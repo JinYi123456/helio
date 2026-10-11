@@ -225,13 +225,25 @@ app.get('/api/_diag/vision', async (c) => {
 
 app.get('/api/_diag/haiku', async (c) => {
   if (c.req.query('go') !== '1') return c.json({ hint: 'append ?go=1' });
-  const prompt = haikuPrompt({
-    missionTitle: c.req.query('title') || 'Damp green edges',
-    tags: (c.req.query('tags') || 'sprout').split(','),
-    seen: c.req.query('seen') || 'a young sprout between pavement cracks, and a wet leaf',
+  const tokens = Math.min(Math.max(Number(c.req.query('tokens')) || 1000, 100), 2500);
+  const sys = c.req.query('sys') === '1';
+  const effort = c.req.query('effort') || '';
+  const messages = [] as { role: 'system' | 'user'; content: string }[];
+  if (sys) messages.push({ role: 'system', content: 'Output only the three lines of the poem — no reasoning, no notes, no explanation.' });
+  messages.push({
+    role: 'user',
+    content: haikuPrompt({
+      missionTitle: c.req.query('title') || 'Damp green edges',
+      tags: (c.req.query('tags') || 'sprout').split(','),
+      seen: c.req.query('seen') || 'a young sprout between pavement cracks, and a wet leaf',
+    }),
   });
-  const attempt = await chatOnceDebug([{ role: 'user', content: prompt }], { temperature: 0.9, maxTokens: 1000 });
-  return c.json(attempt);
+  const attempt = await chatOnceDebug(messages, {
+    temperature: 0.9,
+    maxTokens: tokens,
+    ...(effort ? { reasoningEffort: effort } : {}),
+  });
+  return c.json({ tokens, sys, effort, ...attempt });
 });
 
 /* ── durable mission lifecycle (Temporal) ───────────────────────────── */
