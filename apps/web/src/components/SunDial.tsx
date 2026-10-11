@@ -12,6 +12,9 @@ type Props = {
 
 const CX = 160, CY = 160;
 const R_OUT = 138, R_IN = 96, R_TICK = 146, R_LABEL = 152;
+/* the four hour labels sit at r=162; pad the viewBox so they are not clipped
+   at 00 / 06 / 12 / 18 o'clock */
+const VIEWBOX = '-12 -12 344 344';
 
 function pol(cx: number, cy: number, r: number, aDeg: number) {
   const a = (aDeg * Math.PI) / 180;
@@ -49,7 +52,7 @@ export function SunDial({ windows, lat, lon, state, onOpen }: Props) {
 
   return (
     <div className="dial" onClick={onOpen} role="button" aria-label={`helio dial — ${winkey}`}>
-      <svg viewBox="0 0 320 320">
+      <svg viewBox={VIEWBOX}>
         <defs>
           <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#ffd27a" stopOpacity="0.95" />
