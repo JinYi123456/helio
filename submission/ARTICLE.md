@@ -204,8 +204,7 @@ Honest limits, because the meadow only grows on verified walks:
   answered.
 - **The deployed window service serves precomputed scores.** Torch doesn't fit a 512MB
   free instance, so the real model runs in the daily GitHub Action bake and the service
-  recomputes live forecasts on top — the `served` field always tells you which layer
-  answered.
+  recomputes live forecasts on top of it.
 - **On-device verdicts take ~45 seconds on CPU.** That's the honest price of the photo
   never leaving your machine. The hosted demo uses cloud Gemma instead; locally, put the
   kettle on while it judges your grass.
@@ -267,7 +266,7 @@ them degrades gracefully when absent — try removing any):
 | Category | In Helio |
 |---|---|
 | **Render** | `render.yaml` blueprint: agent (Node, serves the PWA) + grass-window service (Python, precompute mode). Free tier, two services, one blueprint. |
-| **TabPFN** | The grass window itself — in-context over 10y of weather, personal labels from real walks, CPU inference, license-aware fallback chain. |
+| **TabPFN** | The grass window itself — in-context over 10y of weather (or a 2-year archive fetched on demand for coordinates you bring), personal labels from real walks, CPU inference, license-aware fallback chain. |
 | **Gemma** | Two jobs: the mission compiler (via Mastra) and the photo proof verifier — both on-device via Ollama. |
 | **Mastra** | The mission compiler agent: three tools, multi-step, structured draft + repair pass. |
 | **ElevenLabs** | Whisper TTS for missions, disk-cached; falls back to browser speech. |

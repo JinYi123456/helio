@@ -6,6 +6,31 @@
 2. I built an AI that won't believe you went outside (until you prove it)
 3. Helio — proof of grass: when AI sends you away from the screen
 
+## YouTube upload (for the 66-second walkthrough)
+
+**Title:**
+
+> Helio — an open-weight AI that makes you touch grass (and checks your photo)
+
+**Description:**
+
+> A photo of your keyboard does not count. I checked.
+>
+> Helio is an offline-first PWA where open-weight AI does two jobs: TabPFN reads ten
+> years of your city's weather to tell you *when* touching grass is worth it, and a
+> local Gemma model verifies the photo you bring back — on your device, nothing
+> uploaded.
+>
+> Built for the DEV × Hacktoberfest Open-Source AI Challenge, Week 1: Touch Grass.
+>
+> Live demo: https://helio-agent.onrender.com (free Render instance — first load may
+> take ~1 min)
+> Code (MIT): https://github.com/JinYi123456/helio
+>
+> Stack: TabPFN · Gemma via Ollama · Mastra · Temporal · ElevenLabs · SerpApi ·
+> MongoDB Atlas · Sentry · Tiger Data · Tinker · Render · open-meteo
+
+
 ## Tags (DEV allows 4)
 
 `#devchallenge` `#hf26challenge` `#hacktoberfest` `#softwaredevelopment`
