@@ -8,7 +8,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { config, engineLabel, llmEndpoint } from './config.js';
 import { pickGoldenHour } from './lib/golden.js';
-import { writeHaiku, haikuPrompt } from './lib/journal.js';
+import { writeHaiku, haikuPrompt, haikuPromptJson, haikuPromptLean } from './lib/journal.js';
 import { chatOnceDebug, resolvedTextModel } from './lib/llm.js';
 import { memoryKind, recentWalks, rememberWalk, similarWalks } from './lib/memory.js';
 import { footprintSeries, recordFootprint, tigerEnabled, tigerStatus } from './lib/tiger.js';
@@ -225,25 +225,22 @@ app.get('/api/_diag/vision', async (c) => {
 
 app.get('/api/_diag/haiku', async (c) => {
   if (c.req.query('go') !== '1') return c.json({ hint: 'append ?go=1' });
-  const tokens = Math.min(Math.max(Number(c.req.query('tokens')) || 1000, 100), 2500);
+  const nomax = c.req.query('nomax') === '1';
+  const tokens = nomax ? null : Math.min(Math.max(Number(c.req.query('tokens')) || 1000, 100), 3200);
+  const variant = c.req.query('p') || 'plain';
   const sys = c.req.query('sys') === '1';
-  const effort = c.req.query('effort') || '';
+  const input = {
+    missionTitle: c.req.query('title') || 'Damp green edges',
+    tags: (c.req.query('tags') || 'sprout').split(','),
+    seen: c.req.query('seen') || 'a young sprout between pavement cracks, and a wet leaf',
+  };
+  const content =
+    variant === 'json' ? haikuPromptJson(input) : variant === 'lean' ? haikuPromptLean(input) : haikuPrompt(input);
   const messages = [] as { role: 'system' | 'user'; content: string }[];
   if (sys) messages.push({ role: 'system', content: 'Output only the three lines of the poem — no reasoning, no notes, no explanation.' });
-  messages.push({
-    role: 'user',
-    content: haikuPrompt({
-      missionTitle: c.req.query('title') || 'Damp green edges',
-      tags: (c.req.query('tags') || 'sprout').split(','),
-      seen: c.req.query('seen') || 'a young sprout between pavement cracks, and a wet leaf',
-    }),
-  });
-  const attempt = await chatOnceDebug(messages, {
-    temperature: 0.9,
-    maxTokens: tokens,
-    ...(effort ? { reasoningEffort: effort } : {}),
-  });
-  return c.json({ tokens, sys, effort, ...attempt });
+  messages.push({ role: 'user', content });
+  const attempt = await chatOnceDebug(messages, { temperature: 0.9, maxTokens: tokens });
+  return c.json({ variant, tokens, sys, ...attempt });
 });
 
 /* ── durable mission lifecycle (Temporal) ───────────────────────────── */

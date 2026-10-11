@@ -124,7 +124,7 @@ export async function chatText(
 /** Raw one-shot chat for the diagnostics route — status, finish reason, usage, content. */
 export async function chatOnceDebug(
   messages: ChatMessage[],
-  opts: { temperature?: number; maxTokens?: number; timeoutMs?: number; reasoningEffort?: string } = {}
+  opts: { temperature?: number; maxTokens?: number | null; timeoutMs?: number; reasoningEffort?: string } = {}
 ): Promise<Record<string, unknown>> {
   const p = llmEndpoint();
   const model = await ensureTextModel();
@@ -143,7 +143,7 @@ export async function chatOnceDebug(
           model,
           messages,
           temperature: opts.temperature ?? 0.8,
-          max_tokens: opts.maxTokens ?? 400,
+          ...(opts.maxTokens === null ? {} : { max_tokens: opts.maxTokens ?? 400 }),
           ...(p.suppressThinking ? { reasoning_effort: 'none' } : {}),
           ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
         }),

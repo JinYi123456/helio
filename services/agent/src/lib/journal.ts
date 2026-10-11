@@ -23,6 +23,23 @@ export function haikuPrompt(input: { missionTitle: string; tags: string[]; seen:
   ].join('\n');
 }
 
+/** Strict-JSON wording — thinking models over-deliberate on open creative asks but settle for schemas. */
+export function haikuPromptJson(input: { missionTitle: string; tags: string[]; seen: string }): string {
+  return [
+    'Write a haiku about this exact moment from a short walk.',
+    `Mission: ${input.missionTitle}`,
+    `What the walker saw: ${input.seen}`,
+    `Themes: ${input.tags.join(', ')}`,
+    '5-7-5 syllables across exactly 3 lines, concrete images, lowercase ok.',
+    'Reply with only JSON, no other text: {"haiku": ["line 1", "line 2", "line 3"]}',
+  ].join('\n');
+}
+
+/** Leanest ask — fewest constraints means the least to deliberate about. */
+export function haikuPromptLean(input: { missionTitle: string; tags: string[]; seen: string }): string {
+  return `Write one haiku, three lines, 5-7-5 syllables, about ${input.seen}. Mission theme: ${input.missionTitle}. Reply with only the three lines.`;
+}
+
 export async function writeHaiku(input: {
   missionTitle: string;
   tags: string[];
