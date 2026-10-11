@@ -46,8 +46,8 @@ also survives the wrong photo. Try your keyboard.)*
 
 ## Demo
 
-- **Live:** https://helio-agent.onrender.com ← replace with the deployed URL
-- **Repo:** https://github.com/JinYi123456/helio ← replace with the real URL
+- **Live:** https://helio-agent.onrender.com (free Render instance — first load may take ~1 min to wake)
+- **Repo:** https://github.com/JinYi123456/helio
 - 90-second local run:
 
 ```bash
