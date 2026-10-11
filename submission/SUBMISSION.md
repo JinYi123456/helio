@@ -8,6 +8,8 @@
 
 ## YouTube upload (for the 79-second walkthrough)
 
+**Uploaded:** https://youtu.be/ar8bz7y_dWM — title as set: "Helio — an open-weight AI that makes you touch grass". The DEV article embeds this URL directly in the Demo section (a standalone YouTube link line renders as a player).
+
 **Title:**
 
 > Helio — an open-weight AI that makes you touch grass (and checks your photo)
