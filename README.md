@@ -12,7 +12,7 @@ mode, zero signal. No account. No upload. Nothing to sign up for.
 
 Built for the **DEV × Hacktoberfest Open Source AI Challenge** — Week 1: *Touch Grass*.
 
-**Live demo:** [helio-agent.onrender.com](https://helio-agent.onrender.com) (free instance — first load may take ~1 min) · **79-second walkthrough:** [helio-demo.mp4](submission/assets/helio-demo.mp4)
+**Live demo:** [helio-agent.onrender.com](https://helio-agent.onrender.com) (free instance — first load may take ~1 min) · **79-second walkthrough:** [YouTube](https://youtu.be/ar8bz7y_dWM) · [mp4 in the repo](submission/assets/helio-demo.mp4)
 
 ---
 
