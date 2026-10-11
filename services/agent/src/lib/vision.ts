@@ -70,7 +70,7 @@ async function viaOllama(imageB64: string, prompt: string): Promise<Verdict | nu
 let _modelCatalog: { at: number; ids: string[] } | null = null;
 let _visionWinner = '';
 
-async function gemmaModelIds(baseURL: string, apiKey: string): Promise<string[]> {
+export async function gemmaModelIds(baseURL: string, apiKey: string): Promise<string[]> {
   if (_modelCatalog && Date.now() - _modelCatalog.at < 10 * 60_000) return _modelCatalog.ids;
   try {
     const res = await fetchWithTimeout(

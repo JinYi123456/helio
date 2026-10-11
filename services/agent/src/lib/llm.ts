@@ -1,7 +1,8 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { MastraLanguageModel } from '@mastra/core/agent';
-import { config, llmEndpoint } from '../config.js';
+import { config, llmEndpoint, type LlmEndpoint } from '../config.js';
 import { fetchWithTimeout } from './util.js';
+import { gemmaModelIds } from './vision.js';
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
@@ -23,12 +24,12 @@ function providerConfigured(): boolean {
  * Plain OpenAI-compatible chat, used for haiku/repair calls.
  * `reasoning_effort: none` keeps Ollama's gemma4 from thinking out loud.
  */
-export async function chatText(
+async function chatOnce(
+  p: LlmEndpoint,
+  model: string,
   messages: ChatMessage[],
-  opts: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {}
+  opts: { temperature?: number; maxTokens?: number; timeoutMs?: number }
 ): Promise<string | null> {
-  if (!providerConfigured()) return null;
-  const p = llmEndpoint();
   try {
     const res = await fetchWithTimeout(
       `${p.baseURL.replace(/\/$/, '')}/chat/completions`,
@@ -39,7 +40,7 @@ export async function chatText(
           ...(p.apiKey ? { authorization: `Bearer ${p.apiKey}` } : {}),
         },
         body: JSON.stringify({
-          model: p.model,
+          model,
           messages,
           temperature: opts.temperature ?? 0.8,
           max_tokens: opts.maxTokens ?? 400,
@@ -55,6 +56,69 @@ export async function chatText(
   } catch {
     return null;
   }
+}
+
+let _textWinner = '';
+
+async function textCandidates(p: LlmEndpoint): Promise<string[]> {
+  const list: (string | undefined)[] = [process.env.HELIO_MODEL_COMPAT, p.model];
+  if (p.name === 'google') list.push(...(await gemmaModelIds(p.baseURL, p.apiKey)));
+  return list.filter((m): m is string => Boolean(m)).filter((m, i, a) => a.indexOf(m) === i);
+}
+
+async function pingModel(p: LlmEndpoint, model: string): Promise<boolean> {
+  try {
+    const res = await fetchWithTimeout(
+      `${p.baseURL.replace(/\/$/, '')}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(p.apiKey ? { authorization: `Bearer ${p.apiKey}` } : {}),
+        },
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 4 }),
+      },
+      20_000
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Hosted catalogs drift — the configured model id may not exist anymore (or be
+ * text-only). Ping candidates once and remember the first that answers, the
+ * same way the vision path does.
+ */
+export async function ensureTextModel(): Promise<string> {
+  const p = llmEndpoint();
+  if (p.name === 'ollama' || _textWinner) return _textWinner || p.model;
+  for (const model of await textCandidates(p)) {
+    if (await pingModel(p, model)) {
+      _textWinner = model;
+      break;
+    }
+  }
+  return _textWinner || p.model;
+}
+
+export async function chatText(
+  messages: ChatMessage[],
+  opts: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {}
+): Promise<string | null> {
+  if (!providerConfigured()) return null;
+  const p = llmEndpoint();
+  const model = await ensureTextModel();
+  const out = await chatOnce(p, model, messages, opts);
+  if (out) return out;
+  if (_textWinner) {
+    // The cached winner can go stale mid-flight — re-resolve once.
+    _textWinner = '';
+    const retry = await ensureTextModel();
+    if (retry !== model) return chatOnce(p, retry, messages, opts);
+  }
+  return null;
 }
 
 /**
@@ -74,7 +138,7 @@ export function buildMastraModel(): MastraLanguageModel {
         }
       : {}),
   });
-  return provider.chatModel(p.model) as unknown as MastraLanguageModel;
+  return provider.chatModel(_textWinner || p.model) as unknown as MastraLanguageModel;
 }
 
 export function providerReady(): boolean {

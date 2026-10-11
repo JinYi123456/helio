@@ -1,7 +1,7 @@
 import { Mastra } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { z } from 'zod';
-import { buildMastraModel, chatText, providerReady } from './llm.js';
+import { buildMastraModel, chatText, ensureTextModel, providerReady } from './llm.js';
 import { TAG_VOCAB } from './seeds.js';
 import { sentryEnabled } from './sentry.js';
 import { fieldTools } from './tools.js';
@@ -100,6 +100,7 @@ function normalize(draft: MissionDraft): MissionDraft {
 /** Ask the agent for a mission. Null when the model can't be reached or insists on prose. */
 export async function compileMission(report: MissionReport, regenerate = false): Promise<MissionDraft | null> {
   if (!providerReady()) return null;
+  await ensureTextModel();
   const k = regenerate ? 'The walker pressed the seed again — make it meaningfully different from the usual.' : '';
   const prompt = [
     'FIELD REPORT:',
@@ -124,8 +125,17 @@ export async function compileMission(report: MissionReport, regenerate = false):
       { temperature: 0.1, maxTokens: 300 }
     );
     const fixed = repaired ? MissionDraft.safeParse(looseJson(repaired)) : null;
-    return fixed?.success ? normalize(fixed.data) : null;
+    if (fixed?.success) return normalize(fixed.data);
   } catch {
-    return null;
+    /* the tool loop fell over — the plain-text compile below still gets a mission */
   }
+
+  // Text-only compile keeps hosted deployments alive when the agent's tool
+  // loop hiccups on an open-weight endpoint.
+  const solo = await chatText(
+    [{ role: 'user', content: `${INSTRUCTIONS}\n\nAnswer immediately from the FIELD REPORT below — no tools needed.\n\n${prompt}` }],
+    { temperature: 0.7, maxTokens: 500 }
+  );
+  const soloParsed = solo ? MissionDraft.safeParse(looseJson(solo)) : null;
+  return soloParsed?.success ? normalize(soloParsed.data) : null;
 }
