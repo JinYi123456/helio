@@ -33,6 +33,7 @@ export type Mission = {
   engine: string;
   groundNotes?: string[];
   audioUrl?: string | null;
+  lifecycle?: { scheduled: boolean; goldenLabel?: string; workflowId?: string; runId?: string; reason?: string };
 };
 
 export type Walk = {
@@ -64,6 +65,8 @@ export type Health = {
   tts: boolean;
   serpapi: boolean;
   sentry: boolean;
+  temporal?: boolean;
+  tinker?: boolean;
   engine?: string;       // human-readable: "gemma4:e2b · ollama (local)"
   time?: string;
 };

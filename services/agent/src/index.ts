@@ -7,14 +7,19 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { config, engineLabel, llmEndpoint } from './config.js';
+import { pickGoldenHour } from './lib/golden.js';
 import { writeHaiku } from './lib/journal.js';
 import { memoryKind, recentWalks, rememberWalk, similarWalks } from './lib/memory.js';
+import { footprintSeries, recordFootprint, tigerEnabled, tigerStatus } from './lib/tiger.js';
 import { compileMission } from './lib/mission-agent.js';
 import { ollamaReachable } from './lib/ollama.js';
 import { seedMission } from './lib/seeds.js';
 import { localGround } from './lib/serpapi.js';
 import { captureException, sentryEnabled, withSpan } from './lib/sentry.js';
+import { missionLifecycleStatus, scheduleMissionLifecycle, signalMissionDone, temporalEnabled } from './lib/temporal.js';
+import { tinkerEnabled, whisperFromTinker } from './lib/tinker.js';
 import { audioFile, ensureAudio } from './lib/tts.js';
+import { pad2 } from './lib/util.js';
 import { fetchWindow, type DayWindow } from './lib/window.js';
 import { hostedVisionAttempt, verifyPhoto, visionCandidates } from './lib/vision.js';
 
@@ -58,6 +63,9 @@ app.get('/api/health', async (c) => {
     tts: Boolean(config.elevenLabsKey),
     serpapi: Boolean(config.serpApiKey),
     sentry: sentryEnabled(),
+    temporal: temporalEnabled(),
+    tinker: tinkerEnabled(),
+    tiger: tigerEnabled(),
     engine: `${engineLabel()}${ollama ? '' : ' · model server offline'}`,
     time: new Date().toISOString(),
   });
@@ -82,6 +90,17 @@ type MissionBody = {
   regenerate?: boolean;
   name?: string;
 };
+
+type LifecycleInfo = { scheduled: boolean; goldenLabel?: string; workflowId?: string; runId?: string; reason?: string };
+
+async function scheduleLifecycle(missionId: string, title: string, cityKey: string, week: DayWindow[]): Promise<LifecycleInfo> {
+  if (!temporalEnabled()) return { scheduled: false, reason: 'temporal not configured' };
+  const golden = pickGoldenHour(week);
+  if (!golden) return { scheduled: false, reason: 'no upcoming grass window' };
+  const expiresIso = new Date(new Date(golden.iso).getTime() + 6 * 3_600_000).toISOString();
+  const res = await scheduleMissionLifecycle({ missionId, title, cityKey, goldenHourIso: golden.iso, expiresIso });
+  return { ...res, goldenLabel: `${golden.weekday} ${pad2(golden.hour)}:00` };
+}
 
 app.post('/api/mission', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as MissionBody;
@@ -123,23 +142,39 @@ app.post('/api/mission', async (c) => {
         seedMission({ dateKey, cityKey, envs, variant: body.regenerate ? 1 : 0, window: today });
 
       const usedModel = Boolean(draft);
-      const audioUrl = await ensureAudio(chosen.whisper);
+      const tinkerWhisper = await whisperFromTinker({
+        city: cityLabel,
+        weekday: today?.weekday ?? 'today',
+        hour: today?.hours?.[0] ?? 8,
+        envs,
+        tMax: today?.tMax ?? null,
+        precip: today?.precip ?? null,
+        tags: chosen.tags,
+        title: chosen.title,
+      });
+      const whisper = tinkerWhisper ?? chosen.whisper;
+      const audioUrl = await ensureAudio(whisper);
+      const id = crypto.randomUUID();
+      const lifecycle = await scheduleLifecycle(id, chosen.title, cityKey, week);
 
       return {
-        id: crypto.randomUUID(),
+        id,
         dateKey,
         createdAt: Date.now(),
         title: chosen.title,
-        whisper: chosen.whisper,
+        whisper,
         proofCriteria: chosen.proofCriteria,
         proofHint: chosen.proofHint,
         durationMin: chosen.durationMin,
         tags: chosen.tags,
         whyNow: chosen.whyNow,
         window: today,
-        engine: usedModel ? engineLabel() : 'hand-written seed · open data (offline-safe)',
+        engine: usedModel
+          ? `${engineLabel()}${tinkerWhisper ? ' · whisper: tinker lora' : ''}`
+          : `hand-written seed · open data (offline-safe)${tinkerWhisper ? ' · whisper: tinker lora' : ''}`,
         groundNotes: ground,
         audioUrl,
+        lifecycle,
       };
     },
     { 'gen_ai.system': p.name, 'gen_ai.request.model': p.model, 'helio.city': cityLabel }
@@ -152,7 +187,7 @@ app.post('/api/mission', async (c) => {
 
 app.post('/api/verify', async (c) => {
   const body = (await c.req.json().catch(() => null)) as
-    | { mission?: { title?: string; proofCriteria?: string; tags?: string[] }; image?: string }
+    | { mission?: { id?: string; title?: string; proofCriteria?: string; tags?: string[] }; image?: string }
     | null;
   if (!body?.mission?.title || !body.image) return c.json({ error: 'need mission + image' }, 400);
 
@@ -163,6 +198,7 @@ app.post('/api/verify', async (c) => {
     tags: body.mission!.tags ?? [],
   });
   if (!verdict) return c.json({ error: 'no vision model reachable — keep your proof, we will check later' }, 503);
+  if (verdict.passed && body.mission!.id) void signalMissionDone(body.mission!.id);
   return c.json(verdict);
 });
 
@@ -182,6 +218,32 @@ app.get('/api/_diag/vision', async (c) => {
     else attempts.push({ model, status: res.status, body: (await res.text()).slice(0, 240) });
   }
   return c.json({ provider: p.name, model: p.model, candidates, attempts });
+});
+
+/* ── durable mission lifecycle (Temporal) ───────────────────────────── */
+
+const lifecycleEvents = new Map<string, { event: string; at: string }[]>();
+
+app.post('/api/_lifecycle/event', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { missionId?: string; event?: string; at?: string };
+  if (!body.missionId || !body.event) return c.json({ error: 'need missionId + event' }, 400);
+  const list = lifecycleEvents.get(body.missionId) ?? [];
+  list.push({ event: body.event, at: body.at || new Date().toISOString() });
+  lifecycleEvents.set(body.missionId, list);
+  console.log(`[lifecycle] ${body.missionId} → ${body.event}`);
+  return c.json({ ok: true });
+});
+
+app.get('/api/mission/lifecycle', async (c) => {
+  const id = c.req.query('id');
+  if (!id) return c.json({ error: 'need ?id=' }, 400);
+  const durable = await missionLifecycleStatus(id);
+  return c.json({
+    missionId: id,
+    enabled: temporalEnabled(),
+    durable,
+    events: lifecycleEvents.get(id) ?? [],
+  });
 });
 
 /* ── journal + memory ───────────────────────────────────────────────── */
@@ -206,7 +268,7 @@ app.post('/api/journal', async (c) => {
     dateKey: body.dateKey || new Date().toISOString().slice(0, 10),
   });
   if (body.id) {
-    await rememberWalk({
+    const walk = {
       id: body.id,
       ts: Date.now(),
       dateKey: body.dateKey || new Date().toISOString().slice(0, 10),
@@ -216,7 +278,9 @@ app.post('/api/journal', async (c) => {
       seen: body.seen,
       haiku,
       verdictPassed: body.verdictPassed,
-    }).catch(() => {});
+    };
+    await rememberWalk(walk).catch(() => {});
+    void recordFootprint(walk);
   }
   return c.json({ haiku, engine });
 });
@@ -260,7 +324,7 @@ app.post('/api/sync', async (c) => {
         seen: (verdict as { seen?: string } | null)?.seen ?? w.seen ?? 'something alive outdoors',
         dateKey: w.dateKey || new Date().toISOString().slice(0, 10),
       });
-      await rememberWalk({
+      const walk = {
         id: w.id,
         ts: w.ts ?? Date.now(),
         dateKey: w.dateKey || new Date().toISOString().slice(0, 10),
@@ -270,7 +334,9 @@ app.post('/api/sync', async (c) => {
         seen: (verdict as { seen?: string } | null)?.seen,
         haiku,
         verdictPassed: (verdict as { passed?: boolean } | null)?.passed,
-      }).catch(() => {});
+      };
+      await rememberWalk(walk).catch(() => {});
+      void recordFootprint(walk);
       results.push({ id: w.id, haiku, verdict });
     } catch (err) {
       results.push({ id: w.id, error: String(err) });
@@ -286,6 +352,17 @@ app.get('/api/memory', async (c) => {
   const q = c.req.query('q');
   const walks = q ? await similarWalks(city, q, 5) : await recentWalks(city, 8);
   return c.json({ kind: await memoryKind(), walks: walks.map(({ embedding, ...w }) => w) });
+});
+
+/* ── time-series footprints (Tiger Data / TimescaleDB) ──────────────── */
+
+app.get('/api/footprints', async (c) => {
+  const city = c.req.query('city') || 'petaling-jaya';
+  const days = Number(c.req.query('days') || 7);
+  const status = await tigerStatus();
+  if (!status.enabled) return c.json({ enabled: false, series: [], total: 0 });
+  const series = await footprintSeries(city, days);
+  return c.json({ enabled: true, connected: status.connected, total: status.total ?? 0, series: series ?? [] });
 });
 
 /* ── voice (ElevenLabs, cached) ─────────────────────────────────────── */

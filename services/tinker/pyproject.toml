@@ -1,0 +1,8 @@
+[project]
+name = "helio-tinker"
+version = "0.1.0"
+description = "Helio's whisper voice — a LoRA fine-tune trained with Tinker (Thinking Machines), distilled from Helio's field-seed corpus."
+requires-python = ">=3.10,<3.15"
+dependencies = [
+  "tinker>=0.33",
+]

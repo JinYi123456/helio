@@ -40,13 +40,15 @@ services:
       - key: ELEVENLABS_API_KEY
         sync: false
       - key: ELEVENLABS_VOICE_ID
-        value: 21m00Tcm4TlvDq8ikWAM
+        value: SAz9YHcvj6GT2YYXdXww
       - key: SERPAPI_KEY
         sync: false
       - key: MONGODB_URI
         sync: false
       - key: MONGODB_DB
         value: helio
+      - key: TIGER_URL
+        sync: false
       - key: SENTRY_DSN
         sync: false
 

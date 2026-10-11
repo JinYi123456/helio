@@ -61,6 +61,9 @@ export function Door() {
         <h1 className="door__title">{mission.title}</h1>
         <p className="door__whisper">“{mission.whisper}”</p>
         <p className="door__proof">proof: {mission.proofCriteria}</p>
+        {mission.lifecycle?.scheduled && (
+          <p className="door__lifecycle">held by a Temporal timer — ripens {mission.lifecycle.goldenLabel}</p>
+        )}
 
         <div className="door__actions">
           <button className="btn btn--primary btn--big" onClick={enter}>
