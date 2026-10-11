@@ -1,7 +1,7 @@
 import { llmEndpoint } from '../config.js';
 import { chatText, providerReady } from './llm.js';
 import { withSpan } from './sentry.js';
-import { hashStr, mulberry32, pick } from './util.js';
+import { hashStr, mulberry32, pick, stripThinking } from './util.js';
 
 const FALLBACK_HAIKU: string[][] = [
   ['morning grass, still wet', 'your shoes know the way by now', 'the screen waits, patiently'],
@@ -38,15 +38,15 @@ export async function writeHaiku(input: {
               ].join('\n'),
             },
           ],
-          { temperature: 0.9, maxTokens: 90 }
+          { temperature: 0.9, maxTokens: 320 }
         ),
       { 'gen_ai.system': p.name, 'gen_ai.request.model': p.model }
     );
     if (text) {
-      const lines = text
+      const lines = stripThinking(text)
         .split('\n')
         .map((l) => l.replace(/^[\s"'\-•*]+|[\s"']+$/g, ''))
-        .filter(Boolean)
+        .filter((l) => l && l.length <= 64 && !/[<>{}\[\]]/.test(l))
         .slice(0, 3);
       if (lines.length === 3) return { haiku: lines.join('\n'), engine: 'model' };
     }

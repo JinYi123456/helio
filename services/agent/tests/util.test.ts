@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { hashStr, looseJson, mulberry32 } from '../src/lib/util.js';
+import { hashStr, looseJson, mulberry32, stripThinking } from '../src/lib/util.js';
+
+describe('stripThinking', () => {
+  it('removes closed narration blocks', () => {
+    expect(stripThinking('a <thought>x</thought> b')).toBe('a   b');
+  });
+  it('removes an unclosed trailing block', () => {
+    expect(stripThinking('haiku line\n<thought>still going')).toBe('haiku line\n ');
+  });
+});
 
 describe('looseJson', () => {
   it('parses clean json', () => {
@@ -21,6 +30,9 @@ describe('looseJson', () => {
   });
   it('falls back to raw text when stripping leaves no json', () => {
     expect(looseJson('<thought>only narration</thought>')).toBeNull();
+  });
+  it('drops an unclosed thinking block', () => {
+    expect(looseJson('<thought>rambles { but never closes')).toBeNull();
   });
   it('returns null for prose with no json', () => {
     expect(looseJson('just some words')).toBeNull();

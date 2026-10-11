@@ -17,12 +17,19 @@ function extract(text: string): string | null {
   return candidate.slice(start, end + 1);
 }
 
+/** Drop model narration: closed blocks, then any unclosed trailing block. */
+export function stripThinking(text: string): string {
+  return text
+    .replace(/<(?:thought|thinking|reasoning)>[\s\S]*?<\/(?:thought|thinking|reasoning)>/gi, ' ')
+    .replace(/<\/?(?:thought|thinking|reasoning)>[\s\S]*$/i, ' ');
+}
+
 /** Parse JSON from a small model that may wrap it in prose or code fences. */
 export function looseJson<T = unknown>(text: string): T | null {
   if (!text) return null;
   // Thinking models narrate first; <thought>…</thought> can contain stray braces,
   // so the JSON is scooped from the reply with the narration removed.
-  const stripped = text.replace(/<(?:thought|thinking|reasoning)>[\s\S]*?<\/(?:thought|thinking|reasoning)>/gi, ' ');
+  const stripped = stripThinking(text);
   for (const candidate of stripped === text ? [text] : [stripped, text]) {
     const json = extract(candidate);
     if (!json) continue;
