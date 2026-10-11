@@ -1,7 +1,7 @@
 import { llmEndpoint } from '../config.js';
 import { chatText, providerReady } from './llm.js';
 import { withSpan } from './sentry.js';
-import { hashStr, mulberry32, pick, stripThinking } from './util.js';
+import { hashStr, looseJson, mulberry32, pick, stripThinking } from './util.js';
 
 const FALLBACK_HAIKU: string[][] = [
   ['morning grass, still wet', 'your shoes know the way by now', 'the screen waits, patiently'],
@@ -40,6 +40,21 @@ export function haikuPromptLean(input: { missionTitle: string; tags: string[]; s
   return `Write one haiku, three lines, 5-7-5 syllables, about ${input.seen}. Mission theme: ${input.missionTitle}. Reply with only the three lines.`;
 }
 
+function cleanLine(l: unknown): string {
+  return typeof l === 'string' ? l.replace(/^[\s"'\-•*]+|[\s"']+$/g, '') : '';
+}
+
+function haikuLines(text: string): string[] {
+  const ok = (l: string) => l && l.length <= 64 && !/[<>{}\[\]]/.test(l);
+  const j = looseJson<{ haiku?: unknown }>(text);
+  if (j) {
+    const h = Array.isArray(j.haiku) ? j.haiku : typeof j.haiku === 'string' ? j.haiku.split('\n') : [];
+    const js = h.map(cleanLine).filter(ok).slice(0, 3);
+    if (js.length === 3) return js;
+  }
+  return stripThinking(text).split('\n').map(cleanLine).filter(ok).slice(0, 3);
+}
+
 export async function writeHaiku(input: {
   missionTitle: string;
   tags: string[];
@@ -52,24 +67,16 @@ export async function writeHaiku(input: {
       'journal.haiku',
       'gen_ai.chat',
       () =>
-        chatText(
-          [
-            {
-              role: 'user',
-              content: haikuPrompt(input),
-            },
-          ],
-          // Thinking models burn much of the budget on <thought> before the poem.
-          { temperature: 0.9, maxTokens: 1000 }
-        ),
+        chatText([{ role: 'user', content: haikuPromptJson(input) }], {
+          temperature: 0.9,
+          // Without reasoning_effort support, a fixed cap truncates hosted
+          // thinking models mid-<thought> — let the server default run.
+          maxTokens: p.suppressThinking ? 320 : null,
+        }),
       { 'gen_ai.system': p.name, 'gen_ai.request.model': p.model }
     );
     if (text) {
-      const lines = stripThinking(text)
-        .split('\n')
-        .map((l) => l.replace(/^[\s"'\-•*]+|[\s"']+$/g, ''))
-        .filter((l) => l && l.length <= 64 && !/[<>{}\[\]]/.test(l))
-        .slice(0, 3);
+      const lines = haikuLines(text);
       if (lines.length === 3) return { haiku: lines.join('\n'), engine: 'model' };
     }
   }

@@ -22,13 +22,16 @@ function providerConfigured(): boolean {
 
 /**
  * Plain OpenAI-compatible chat, used for haiku/repair calls.
- * `reasoning_effort: none` keeps Ollama's gemma4 from thinking out loud.
+ * `reasoning_effort: none` keeps Ollama's gemma4 from thinking out loud;
+ * `maxTokens: null` omits the cap entirely — hosted thinking models need the
+ * server default to finish deliberating before they write (a fixed cap
+ * truncates inside <thought> and the answer never arrives).
  */
 async function chatOnce(
   p: LlmEndpoint,
   model: string,
   messages: ChatMessage[],
-  opts: { temperature?: number; maxTokens?: number; timeoutMs?: number }
+  opts: { temperature?: number; maxTokens?: number | null; timeoutMs?: number }
 ): Promise<string | null> {
   try {
     const res = await fetchWithTimeout(
@@ -43,7 +46,7 @@ async function chatOnce(
           model,
           messages,
           temperature: opts.temperature ?? 0.8,
-          max_tokens: opts.maxTokens ?? 400,
+          ...(opts.maxTokens === null ? {} : { max_tokens: opts.maxTokens ?? 400 }),
           ...(p.suppressThinking ? { reasoning_effort: 'none' } : {}),
         }),
       },
@@ -105,7 +108,7 @@ export async function ensureTextModel(): Promise<string> {
 
 export async function chatText(
   messages: ChatMessage[],
-  opts: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {}
+  opts: { temperature?: number; maxTokens?: number | null; timeoutMs?: number } = {}
 ): Promise<string | null> {
   if (!providerConfigured()) return null;
   const p = llmEndpoint();
