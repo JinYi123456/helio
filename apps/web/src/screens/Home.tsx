@@ -11,6 +11,10 @@ import { SeedCard } from '../components/SeedCard';
 import { SkyStrip } from '../components/SkyStrip';
 import { IconDial, IconJournal, IconMeadow, IconGear, IconWhisper, IconRefresh, IconArrow, IconLeaf } from '../components/Icons';
 
+// module scope on purpose: survives this screen's unmount/remount (navigation
+// during a compile must not start a parallel one for the same day)
+let compilingDate: string | null = null;
+
 export function Home() {
   const { settings, mission, setMission, windows, walks, health, go, today, loaded } = useApp();
   const [busy, setBusy] = useState(false);
@@ -28,7 +32,11 @@ export function Home() {
   const fetchMission = useCallback(
     async (regen = false) => {
       if (inflight.current) return;
+      // the component unmounts on navigation — a remount mid-compile must not
+      // fire a second LLM compile for the same day
+      if (!regen && compilingDate === today) return;
       inflight.current = true;
+      compilingDate = today;
       setBusy(true);
       setErr(null);
       try {
@@ -49,6 +57,7 @@ export function Home() {
         setMission(local);
       } finally {
         inflight.current = false;
+        compilingDate = null;
         setBusy(false);
       }
     },

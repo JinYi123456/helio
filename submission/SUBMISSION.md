@@ -6,7 +6,7 @@
 2. I built an AI that won't believe you went outside (until you prove it)
 3. Helio — proof of grass: when AI sends you away from the screen
 
-## YouTube upload (for the 66-second walkthrough)
+## YouTube upload (for the 79-second walkthrough)
 
 **Title:**
 
