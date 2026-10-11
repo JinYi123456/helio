@@ -9,6 +9,7 @@ import { Hono } from 'hono';
 import { config, engineLabel, llmEndpoint } from './config.js';
 import { pickGoldenHour } from './lib/golden.js';
 import { writeHaiku } from './lib/journal.js';
+import { resolvedTextModel } from './lib/llm.js';
 import { memoryKind, recentWalks, rememberWalk, similarWalks } from './lib/memory.js';
 import { footprintSeries, recordFootprint, tigerEnabled, tigerStatus } from './lib/tiger.js';
 import { compileMission } from './lib/mission-agent.js';
@@ -66,7 +67,7 @@ app.get('/api/health', async (c) => {
     temporal: temporalEnabled(),
     tinker: tinkerEnabled(),
     tiger: tigerEnabled(),
-    engine: `${engineLabel()}${ollama ? '' : ' · model server offline'}`,
+    engine: `${engineLabel(resolvedTextModel())}${ollama ? '' : ' · model server offline'}`,
     time: new Date().toISOString(),
   });
 });
@@ -170,7 +171,7 @@ app.post('/api/mission', async (c) => {
         whyNow: chosen.whyNow,
         window: today,
         engine: usedModel
-          ? `${engineLabel()}${tinkerWhisper ? ' · whisper: tinker lora' : ''}`
+          ? `${engineLabel(resolvedTextModel())}${tinkerWhisper ? ' · whisper: tinker lora' : ''}`
           : `hand-written seed · open data (offline-safe)${tinkerWhisper ? ' · whisper: tinker lora' : ''}`,
         groundNotes: ground,
         audioUrl,

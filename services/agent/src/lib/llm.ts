@@ -145,6 +145,11 @@ export function providerReady(): boolean {
   return providerConfigured();
 }
 
+/** The model text calls are actually using (the ping winner once resolved). */
+export function resolvedTextModel(): string {
+  return _textWinner || llmEndpoint().model;
+}
+
 export function providerLabel(): string {
   const p = llmEndpoint();
   return `${p.name}/${p.model}`;

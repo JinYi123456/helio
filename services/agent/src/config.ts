@@ -100,8 +100,9 @@ export function llmEndpoint(): LlmEndpoint {
   }
 }
 
-export function engineLabel(): string {
+/** `modelOverride` lets callers report the model that actually answered, not just the configured one. */
+export function engineLabel(modelOverride?: string): string {
   const probe = llmEndpoint();
   const where = config.provider === 'ollama' ? 'on-device' : 'hosted';
-  return `${probe.model} · ${config.provider} (${where}, open weights)`;
+  return `${modelOverride || probe.model} · ${config.provider} (${where}, open weights)`;
 }
