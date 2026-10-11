@@ -9,18 +9,32 @@ import pandas as pd
 
 from .cities import CITIES
 from .features import climatology_rows
+from .geo import parse_geo_key
 
 DAILY = "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,sunshine_duration,cloud_cover_mean"
 HOURLY = "temperature_2m,precipitation_probability,cloud_cover,wind_speed_10m"
 
 
+def coords_for(city_key: str) -> tuple[float, float]:
+    city = CITIES.get(city_key)
+    if city:
+        return city["lat"], city["lon"]
+    parsed = parse_geo_key(city_key)
+    if parsed:
+        return parsed
+    raise KeyError(city_key)
+
+
 def live_forecast(city_key: str, days: int = 7) -> tuple[pd.DataFrame, dict, str]:
-    city = CITIES[city_key]
+    return live_forecast_at(*coords_for(city_key), days=days)
+
+
+def live_forecast_at(lat: float, lon: float, days: int = 7) -> tuple[pd.DataFrame, dict, str]:
     resp = httpx.get(
         "https://api.open-meteo.com/v1/forecast",
         params={
-            "latitude": city["lat"],
-            "longitude": city["lon"],
+            "latitude": lat,
+            "longitude": lon,
             "daily": DAILY,
             "hourly": HOURLY,
             "timezone": "auto",

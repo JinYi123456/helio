@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field  # noqa: E402
 
 from . import service  # noqa: E402
 from .cities import CITIES  # noqa: E402
+from .geo import is_geo  # noqa: E402
 
 app = FastAPI(title="Helio Grass Window", version="1.0.0")
 app.add_middleware(
@@ -27,6 +28,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _known_city(key: str) -> bool:
+    """Baked skies plus bring-your-own-sky geo:<lat>,<lon> keys."""
+    return key in CITIES or is_geo(key)
 
 
 class PersonalLabel(BaseModel):
@@ -61,7 +67,7 @@ def cities():
 
 @app.get("/window")
 def window(city: str, days: int = 7):
-    if city not in CITIES:
+    if not _known_city(city):
         raise HTTPException(status_code=404, detail=f"unknown city: {city}")
     days = max(1, min(days, 14))
     try:
@@ -74,7 +80,7 @@ def window(city: str, days: int = 7):
 
 @app.post("/personalize")
 def personalize(body: PersonalizeBody):
-    if body.city not in CITIES:
+    if not _known_city(body.city):
         raise HTTPException(status_code=404, detail=f"unknown city: {body.city}")
     model = service.get_model(body.city)
     n = model.add_personal_labels([l.model_dump() for l in body.labels])

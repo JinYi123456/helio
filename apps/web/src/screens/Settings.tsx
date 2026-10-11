@@ -27,15 +27,22 @@ export function SettingsScreen() {
     }
     setLocate('asking the sky…');
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { city, km } = nearestCity(pos.coords.latitude, pos.coords.longitude);
-        setSettings({ ...settings, cityKey: city.key });
-        const d = Math.round(km);
-        setLocate(
-          d < 50
-            ? `found you — ${city.label}, ${d} km away. dial + seeds follow your sky now.`
-            : `you're ${d} km from ${city.label}, the nearest baked city — weather history ships per city, so this is the closest honest sky.`
-        );
+      async (pos) => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        try {
+          const r = await api.locate(settings, lat, lon);
+          setSettings({ ...settings, cityKey: r.key, cityLabel: r.how === 'live-coords' ? r.label : undefined });
+          const d = Math.round(r.nearest.km);
+          setLocate(
+            r.how === 'live-coords'
+              ? `found you — ${r.label}. the baked skies end ${d} km away (${r.nearest.label}), so helio reads your own coordinates: live forecast, your climate's own archive.`
+              : `found you — ${r.label}, ${d} km from this sky. dial + seeds follow it now.`
+          );
+          return;
+        } catch {
+          /* agent asleep — fall back to the nearest baked sky */
+        }
+        setLocate2(lat, lon);
       },
       (err) => {
         setLocate(
@@ -45,6 +52,17 @@ export function SettingsScreen() {
         );
       },
       { timeout: 10_000, maximumAge: 600_000 }
+    );
+  };
+
+  const setLocate2 = (lat: number, lon: number) => {
+    const { city, km } = nearestCity(lat, lon);
+    setSettings({ ...settings, cityKey: city.key, cityLabel: undefined });
+    const d = Math.round(km);
+    setLocate(
+      d < 50
+        ? `found you — ${city.label}, ${d} km away. dial + seeds follow your sky now.`
+        : `you're ${d} km from ${city.label}, the nearest baked city — this browser couldn't reach the agent for a live sky, so this is the closest honest one.`
     );
   };
 
@@ -111,7 +129,17 @@ export function SettingsScreen() {
         </label>
         <label className="field">
           <span>your city <small>(drives the sun dial + personal model)</small></span>
-          <select value={settings.cityKey} onChange={(e) => setSettings({ ...settings, cityKey: e.target.value })}>
+          <select
+            value={settings.cityKey}
+            onChange={(e) => {
+              const key = e.target.value;
+              const baked = CITIES.some((c) => c.key === key);
+              setSettings({ ...settings, cityKey: key, cityLabel: baked ? undefined : settings.cityLabel });
+            }}
+          >
+            {settings.cityLabel && !CITIES.some((c) => c.key === settings.cityKey) && (
+              <option value={settings.cityKey}>{settings.cityLabel} — your location</option>
+            )}
             {CITIES.map((c) => (
               <option key={c.key} value={c.key}>{c.label}</option>
             ))}

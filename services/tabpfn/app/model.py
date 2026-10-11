@@ -14,8 +14,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .cities import CITY_LABEL_RULES
-from .features import FEATURES, label_good, load_history
+from .features import FEATURES, history_for, label_good, rules_for
 
 
 @dataclass
@@ -50,7 +49,7 @@ class GrassWindowModel:
         return len(self.personal)
 
     def _fit(self):
-        history = load_history(self.city_key)
+        history = history_for(self.city_key)
         recent = history.tail(int(2 * 365.25))
         X = recent[FEATURES].to_numpy(dtype=float)
         y = label_good(recent, self.city_key).to_numpy()
@@ -108,7 +107,7 @@ class GrassWindowModel:
             date = pd.Timestamp(label["date"])
         except Exception:
             return None
-        hist = load_history(self.city_key)
+        hist = history_for(self.city_key)
         window = hist[(hist["date"].dt.dayofyear - date.dayofyear).abs() <= 4]
         if window.empty:
             window = hist.tail(30)
@@ -140,4 +139,4 @@ class GrassWindowModel:
         return [float(p[1]) for p in proba]
 
     def label_rules(self) -> dict:
-        return dict(CITY_LABEL_RULES[self.city_key])
+        return dict(rules_for(self.city_key))

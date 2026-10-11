@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../App';
 import type { Walk } from '../lib/types';
+import { prettyCity } from '../lib/geo';
 import { Stamp } from '../components/Stamp';
 import { IconDownload, IconJournal, IconTrash, IconX } from '../components/Icons';
 
@@ -49,7 +50,7 @@ export function Journal() {
             <button className="sheet__x" onClick={() => setOpenId(null)}><IconX size={20} /></button>
             {open.photo && <img src={open.photo} alt="" className="sheet__photo" />}
             <div className="sheet__meta">
-              <span>{new Date(open.ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {open.cityKey}</span>
+              <span>{new Date(open.ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {open.cityLabel ?? prettyCity(open.cityKey)}</span>
             </div>
             <h2 className="sheet__title">{open.missionTitle}</h2>
             {open.haiku && <p className="sheet__haiku">{open.haiku}</p>}
@@ -127,7 +128,7 @@ async function exportPage(w: Walk) {
 
   ctx.fillStyle = '#22301f';
   ctx.font = '28px ui-monospace, monospace';
-  ctx.fillText(`PROOF OF GRASS · ${w.dateKey} · ${w.cityKey.toUpperCase()}`, 80, 1330);
+  ctx.fillText(`PROOF OF GRASS · ${w.dateKey} · ${(w.cityLabel ?? prettyCity(w.cityKey)).toUpperCase()}`, 80, 1330);
 
   ctx.beginPath();
   ctx.arc(W - 170, 1250, 92, 0, Math.PI * 2);

@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../App';
-import { CITIES, DEFAULT_SETTINGS } from '../lib/types';
+import { DEFAULT_SETTINGS } from '../lib/types';
 import type { Mission } from '../lib/types';
 import { api } from '../lib/api';
 import * as db from '../lib/db';
+import { cityCoords, cityLabelOf } from '../lib/geo';
 import { whisper } from '../lib/speech';
 import { SunDial } from '../components/SunDial';
 import { SeedCard } from '../components/SeedCard';
+import { SkyStrip } from '../components/SkyStrip';
 import { IconDial, IconJournal, IconMeadow, IconGear, IconWhisper, IconRefresh, IconArrow, IconLeaf } from '../components/Icons';
 
 export function Home() {
   const { settings, mission, setMission, windows, walks, health, go, today, loaded } = useApp();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const city = CITIES.find((c) => c.key === settings.cityKey) ?? CITIES[0];
+  const city = cityCoords(settings);
 
   const doneToday = !!mission && walks.some((w) => w.missionId === mission.id);
   const weekWalks = useMemo(
@@ -32,6 +34,7 @@ export function Home() {
       try {
         const m = await api.mission(settings, {
           cityKey: settings.cityKey,
+          cityLabel: cityLabelOf(settings),
           envs: settings.envs,
           dateKey: today,
           history: walks.slice(0, 8).map((w) => w.missionTitle),
@@ -77,6 +80,8 @@ export function Home() {
       <div className="home__dialwrap">
         <SunDial windows={windows} lat={city.lat} lon={city.lon} state={state} onOpen={() => mission && go('door')} />
       </div>
+
+      <SkyStrip days={windows} today={today} />
 
       <div className="home__panel">
         {err && <p className="note note--offline">{err}</p>}

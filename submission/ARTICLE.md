@@ -29,8 +29,11 @@ earns:
 
 Between those two poles sits the experience:
 
-- **the dial** — a sun-compass that lights up the best outdoor hours of today; one tap on
-  *use my location* pins the nearest supported sky
+- **the dial** — a sun-compass that lights up the best outdoor hours of today, over a
+  one-line weather strip (today's high/low, rain, cloud, the week ahead); one tap on
+  *use my location* finds your actual sky — Helio reverse-geocodes you, keeps the
+  nearest baked city's decade of history if you're within 50 km, and otherwise builds
+  the climate rules from two years of open weather archive for your own coordinates
 - **the door** — a Mastra + Gemma *mission compiler* writes you a tiny whispered
   assignment ("Find the oldest standing thing within walking distance…"), and a
   **Temporal workflow** holds that mission on a durable timer until its grass window
@@ -121,9 +124,10 @@ export function verdictFromRaw(raw: unknown, engine: string, ms: number): Verdic
 }
 ```
 
-Tests are the contract: **33 vitest specs** across tools, verdicts, windows, seeds and
-the durability layer, plus **13 pytest specs** for the forecast chain (all running
-against the real license-accepted model — see below). CI runs both on every push, and a
+Tests are the contract: **44 vitest specs** across tools, verdicts, windows, seeds,
+location matching and the durability layer, plus **21 pytest specs** for the forecast
+chain and the bring-your-own-sky coordinates (the model specs run against the real
+license-accepted model — see below). CI runs both on every push, and a
 daily GitHub Action re-bakes the grass windows on the real model and commits the JSON —
 the free-tier host just serves the bake.
 
@@ -190,10 +194,14 @@ Honest limits, because the meadow only grows on verified walks:
 - **It can't prove *you* took the photo.** The vision check verifies content, not
   authorship — no location attestation, no sensor checks. A determined cheater with a
   stock photo of moss could still fool it. Helio is a nudge with a memory, not a cop.
-- **The hosted demo covers three cities.** The model itself takes any city; Petaling
-  Jaya, Seattle and Zürich are what the free-tier bake keeps fresh. Tap *use my
-  location* and Helio picks whichever is nearest — with an honest distance note when
-  you're far from all three.
+- **The hosted demo answers for any coordinates, but only three skies are pre-baked.**
+  *Use my location* reverse-geocodes where you are: within 50 km of a baked city you get
+  that city's sky with an honest distance note; anywhere else Helio rounds your
+  coordinates to three decimals and keys the whole pipeline off them — live forecast,
+  a two-year climate archive fetched on demand, percentile-derived label rules. With
+  Torch on your machine that sky scores on the real model; on the free-tier host it
+  falls back to the heuristic chain, and the `served` field always says which layer
+  answered.
 - **The deployed window service serves precomputed scores.** Torch doesn't fit a 512MB
   free instance, so the real model runs in the daily GitHub Action bake and the service
   recomputes live forecasts on top — the `served` field always tells you which layer

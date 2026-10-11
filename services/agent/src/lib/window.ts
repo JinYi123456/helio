@@ -46,10 +46,12 @@ export function mapTabpfnDays(payload: TabpfnPayload): DayWindow[] {
   }));
 }
 
-/** The Grass Window as the web app knows it — null when the service is dark. */
+/** The Grass Window as the web app knows it — null when the service is dark.
+ *  60s: a geo sky's first call fetches two years of archive and fits TabPFN
+ *  in-context before it can answer. */
 export async function fetchWindow(cityKey: string, days = 7): Promise<{ days: DayWindow[]; source: string } | null> {
   try {
-    const res = await fetchWithTimeout(`${config.tabpfnUrl}/window?city=${encodeURIComponent(cityKey)}&days=${days}`, {}, 30_000);
+    const res = await fetchWithTimeout(`${config.tabpfnUrl}/window?city=${encodeURIComponent(cityKey)}&days=${days}`, {}, 60_000);
     if (!res.ok) return null;
     const payload = (await res.json()) as TabpfnPayload;
     const mapped = mapTabpfnDays(payload);

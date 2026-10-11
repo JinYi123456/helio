@@ -22,6 +22,7 @@ import { tinkerEnabled, whisperFromTinker } from './lib/tinker.js';
 import { audioFile, ensureAudio } from './lib/tts.js';
 import { pad2 } from './lib/util.js';
 import { fetchWindow, type DayWindow } from './lib/window.js';
+import { isGeoKey, resolveLocation } from './lib/locate.js';
 import { hostedVisionAttempt, verifyPhoto, visionCandidates } from './lib/vision.js';
 
 const CITY_LABELS: Record<string, string> = {
@@ -81,10 +82,22 @@ app.get('/api/window', async (c) => {
   return c.json(w);
 });
 
+/* ── where on earth ─────────────────────────────────────────────────── */
+
+app.get('/api/locate', async (c) => {
+  const lat = Number(c.req.query('lat'));
+  const lon = Number(c.req.query('lon'));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+    return c.json({ error: 'locate needs numeric ?lat=&lon=' }, 400);
+  }
+  return c.json(await resolveLocation(lat, lon));
+});
+
 /* ── mission compiler ───────────────────────────────────────────────── */
 
 type MissionBody = {
   cityKey?: string;
+  cityLabel?: string;
   envs?: string[];
   dateKey?: string;
   history?: string[];
@@ -105,8 +118,9 @@ async function scheduleLifecycle(missionId: string, title: string, cityKey: stri
 
 app.post('/api/mission', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as MissionBody;
-  const cityKey = body.cityKey && CITY_LABELS[body.cityKey] ? body.cityKey : 'petaling-jaya';
-  const cityLabel = CITY_LABELS[cityKey];
+  const cityKey =
+    body.cityKey && (CITY_LABELS[body.cityKey] || isGeoKey(body.cityKey)) ? body.cityKey : 'petaling-jaya';
+  const cityLabel = CITY_LABELS[cityKey] ?? body.cityLabel ?? 'your coordinates';
   const envs = body.envs?.length ? body.envs : ['street', 'park', 'garden'];
   const dateKey = body.dateKey || new Date().toISOString().slice(0, 10);
 

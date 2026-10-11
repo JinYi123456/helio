@@ -20,7 +20,7 @@ Built for the **DEV × Hacktoberfest Open Source AI Challenge** — Week 1: *Tou
 
 | | screen | what happens |
 |---|---|---|
-| 01 | **dial** | TabPFN reads a decade of weather for your city (one-tap *use my location*) and draws the best outdoor hours today |
+| 01 | **dial** | TabPFN reads a decade of weather for your sky (*use my location* — anywhere on Earth) and draws the best outdoor hours today, over a week-ahead temperature/rain strip |
 | 02 | **door** | the mission compiler (Mastra + Gemma) writes you a tiny whispered assignment |
 | 03 | **pocket** | put the phone away — the screen is done now |
 | 04 | **proof** | photograph what you found; an on-device vision model passes or fails it |
@@ -80,7 +80,7 @@ working, honestly labelled:
 | **Temporal** | durable mission lifecycle — timer to the golden hour, `markDone` signal from the verifier, 6h expiry → `ripe`/`missed` events | missions compile unscheduled |
 | **Tinker** | Helio's whisper voice as a trainable artifact — `services/tinker/` builds context→whisper pairs and LoRA-fine-tunes a small open-weight model; the agent samples through Tinker's OpenAI-compatible endpoint | compiler's own whisper |
 | **Tiger Data** | time-series footprints — walks land in a TimescaleDB hypertable, `GET /api/footprints` serves the 7-day series | endpoint reports `enabled:false` |
-| **open-meteo** | 10y history + live forecast (free, no key) | bundled CSVs |
+| **open-meteo** | 10y baked history, a 2y archive fetched on demand for coordinates you bring, live forecast (free, no key) | bundled CSVs |
 
 ## Quickstart (5 minutes, zero cost)
 
@@ -105,8 +105,8 @@ Or run everything with one command once `.env` exists: `npm run dev`.
 ## Tests
 
 ```bash
-npm test                              # agent: 33 vitest specs (tools, verdicts, windows, seeds, temporal, tiger, tinker)
-npm run test:py                       # tabpfn: 13 pytest specs over the forecast chain (3 skip until the one-time license is accepted)
+npm test                              # agent: 44 vitest specs (tools, verdicts, windows, seeds, location, temporal, tiger, tinker)
+npm run test:py                       # tabpfn: 21 pytest specs over the forecast chain + bring-your-own-sky coords (model specs skip until the one-time license is accepted)
 npm run build:all                     # tsc + vite build, both services
 ```
 

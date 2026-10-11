@@ -1,4 +1,4 @@
-import type { Settings, Mission, Verdict, Walk, Health, DayWindow } from './types';
+import type { Settings, Mission, Verdict, Walk, Health, DayWindow, Located } from './types';
 
 export function apiBase(s: Settings): string {
   if (s.serverUrl) return s.serverUrl.replace(/\/$/, '');
@@ -21,9 +21,12 @@ export const api = {
   window: (s: Settings, cityKey: string) =>
     j<{ days: DayWindow[]; source: string }>(apiBase(s), `/api/window?city=${encodeURIComponent(cityKey)}`),
 
+  locate: (s: Settings, lat: number, lon: number) =>
+    j<Located>(apiBase(s), `/api/locate?lat=${lat}&lon=${lon}`, { signal: AbortSignal.timeout(8000) }),
+
   mission: (
     s: Settings,
-    body: { cityKey: string; envs: string[]; dateKey: string; history: string[]; regenerate?: boolean; name?: string }
+    body: { cityKey: string; cityLabel?: string; envs: string[]; dateKey: string; history: string[]; regenerate?: boolean; name?: string }
   ) => j<Mission>(apiBase(s), '/api/mission', { method: 'POST', body: JSON.stringify(body) }),
 
   verify: (s: Settings, body: { mission: Pick<Mission, 'title' | 'proofCriteria' | 'tags' | 'id'>; image: string; cityKey?: string }) =>

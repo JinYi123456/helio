@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../App';
 import type { Verdict, Walk } from '../lib/types';
 import { api } from '../lib/api';
+import { cityLabelOf } from '../lib/geo';
 import { Stamp } from '../components/Stamp';
 import { IconCamera, IconCheck, IconX, IconRefresh } from '../components/Icons';
 
@@ -118,6 +119,7 @@ export function Proof() {
       ts: Date.now(),
       dateKey: today,
       cityKey: settings.cityKey,
+      cityLabel: cityLabelOf(settings),
       missionId: mission.id,
       missionTitle: mission.title,
       tags: [...mission.tags],

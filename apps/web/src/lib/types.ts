@@ -41,6 +41,7 @@ export type Walk = {
   ts: number;
   dateKey: string;
   cityKey: string;
+  cityLabel?: string;    // set when the walk's sky is a geo key
   missionId: string;
   missionTitle: string;
   tags: string[];
@@ -74,11 +75,21 @@ export type Health = {
 export type Settings = {
   name: string;
   cityKey: string;
+  cityLabel?: string;    // human name for a geo:<lat>,<lon> key
   envs: string[];
   serverUrl: string;
   voiceOn: boolean;
   motionOk: boolean;
   seenIntro: boolean;
+};
+
+export type Located = {
+  key: string;
+  label: string;
+  lat: number;
+  lon: number;
+  nearest: { key: string; label: string; km: number };
+  how: 'nearest-baked' | 'live-coords';
 };
 
 export const DEFAULT_SETTINGS: Settings = {

@@ -8,8 +8,10 @@ import time
 
 import pandas as pd
 
-from .cities import CITIES, CITY_LABEL_RULES, PRECOMPUTED_DIR
+from .cities import CITIES, PRECOMPUTED_DIR
+from .features import rules_for
 from .forecast import best_hours, climatology_forecast, fmt_window, live_forecast
+from .geo import is_geo, parse_geo_key
 from .model import GrassWindowModel, FitInfo
 
 _MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -54,6 +56,9 @@ def _precomputed_path(city_key: str, precomputed_dir=None):
 
 
 def load_precomputed(city_key: str, precomputed_dir=None) -> dict:
+    if is_geo(city_key):
+        # never baked; also ':' is not a legal path char on Windows
+        raise FileNotFoundError(city_key)
     path = _precomputed_path(city_key, precomputed_dir)
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -73,10 +78,17 @@ def compute_window(
     on, a precomputed JSON made at build time is served instead.
     """
     if city_key not in CITIES:
-        raise KeyError(city_key)
+        # geo:<lat>,<lon> keys are scored live — no bake, no CSV, still honest
+        if not parse_geo_key(city_key):
+            raise KeyError(city_key)
 
     if precompute_only or os.environ.get("HELIO_PRECOMPUTE_ONLY") == "1":
-        return load_precomputed(city_key, precomputed_dir)
+        try:
+            return load_precomputed(city_key, precomputed_dir)
+        except FileNotFoundError:
+            if not is_geo(city_key):
+                raise
+            # geo windows are never baked — fall through and score live
 
     source = "live"
     try:
@@ -131,7 +143,7 @@ def compute_window(
 
 def heuristic_scores(df: pd.DataFrame, city_key: str) -> list[float]:
     """Last-resort scoring when the model itself is unavailable."""
-    r = CITY_LABEL_RULES[city_key]
+    r = rules_for(city_key)
     scores = []
     for _, row in df.iterrows():
         s = 0.45
