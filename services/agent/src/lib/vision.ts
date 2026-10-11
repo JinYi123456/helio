@@ -119,7 +119,8 @@ export async function hostedVisionAttempt(
         body: JSON.stringify({
           model,
           temperature: 0.2,
-          max_tokens: 240,
+          // Thinking models spend part of the budget on <thought> narration before the JSON.
+          max_tokens: 1000,
           messages: [
             {
               role: 'user',

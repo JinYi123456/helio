@@ -8,19 +8,31 @@ export async function fetchWithTimeout(url: string, init: RequestInit = {}, ms =
   return fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
 }
 
-/** Parse JSON from a small model that may wrap it in prose or code fences. */
-export function looseJson<T = unknown>(text: string): T | null {
-  if (!text) return null;
+function extract(text: string): string | null {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const candidate = fenced ? fenced[1] : text;
   const start = candidate.indexOf('{');
   const end = candidate.lastIndexOf('}');
   if (start === -1 || end === -1 || end <= start) return null;
-  try {
-    return JSON.parse(candidate.slice(start, end + 1)) as T;
-  } catch {
-    return null;
+  return candidate.slice(start, end + 1);
+}
+
+/** Parse JSON from a small model that may wrap it in prose or code fences. */
+export function looseJson<T = unknown>(text: string): T | null {
+  if (!text) return null;
+  // Thinking models narrate first; <thought>…</thought> can contain stray braces,
+  // so the JSON is scooped from the reply with the narration removed.
+  const stripped = text.replace(/<(?:thought|thinking|reasoning)>[\s\S]*?<\/(?:thought|thinking|reasoning)>/gi, ' ');
+  for (const candidate of stripped === text ? [text] : [stripped, text]) {
+    const json = extract(candidate);
+    if (!json) continue;
+    try {
+      return JSON.parse(json) as T;
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 export function clamp(n: number, lo: number, hi: number): number {

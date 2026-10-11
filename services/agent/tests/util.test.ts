@@ -14,6 +14,14 @@ describe('looseJson', () => {
       tags: [],
     });
   });
+  it('parses json after thinking-model narration', () => {
+    const reply =
+      '<thought>The walker wants { a brace inside narration } so I must be careful.</thought>\n{"passed":true,"confidence":0.9}';
+    expect(looseJson<{ passed: boolean }>(reply)).toEqual({ passed: true, confidence: 0.9 });
+  });
+  it('falls back to raw text when stripping leaves no json', () => {
+    expect(looseJson('<thought>only narration</thought>')).toBeNull();
+  });
   it('returns null for prose with no json', () => {
     expect(looseJson('just some words')).toBeNull();
   });
