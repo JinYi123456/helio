@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import datetime as dt
 import functools
+import time
 
 import httpx
 import numpy as np
@@ -15,6 +16,22 @@ import pandas as pd
 
 from .cities import CITIES, CITY_LABEL_RULES, DATA_DIR
 from .geo import GENERIC_RULES, derive_rules, is_geo, parse_geo_key
+
+_UA = {"User-Agent": "helio/0.1 (+https://github.com/JinYi123456/helio)"}
+
+
+def http_get_json(url: str, params: dict, timeout: float = 10.0, tries: int = 2) -> dict:
+    """GET JSON with one polite retry — datacenter egress IPs get flaky answers."""
+    last: Exception | None = None
+    for i in range(tries):
+        try:
+            resp = httpx.get(url, params=params, timeout=timeout, headers=_UA)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            last = e
+            time.sleep(0.5 * (i + 1))
+    raise last  # type: ignore[misc]
 
 RENAME = {
     "time": "date",
@@ -53,9 +70,9 @@ def archive_for(lat: float, lon: float) -> pd.DataFrame:
     """Two years of real daily weather for an arbitrary coordinate."""
     end = dt.date.today() - dt.timedelta(days=6)  # the archive lags a few days
     start = end - dt.timedelta(days=729)
-    resp = httpx.get(
+    d = http_get_json(
         ARCHIVE_URL,
-        params={
+        {
             "latitude": lat,
             "longitude": lon,
             "start_date": start.isoformat(),
@@ -64,9 +81,7 @@ def archive_for(lat: float, lon: float) -> pd.DataFrame:
             "timezone": "auto",
         },
         timeout=12.0,
-    )
-    resp.raise_for_status()
-    d = resp.json()["daily"]
+    )["daily"]
     df = pd.DataFrame(
         {
             "date": pd.to_datetime(d["time"]),

@@ -65,11 +65,13 @@ export function fmtGeo(lat: number, lon: number): string {
 }
 
 /** Keyless reverse geocode, designed for client-side use. Null → caller falls back to coords. */
+const UA = 'Mozilla/5.0 (compatible; Helio/0.1; +https://github.com/JinYi123456/helio)';
+
 async function reverseViaBigDataCloud(lat: number, lon: number): Promise<string | null> {
   try {
     const res = await fetchWithTimeout(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
-      {},
+      { headers: { 'user-agent': UA, accept: 'application/json' } },
       4000
     );
     if (!res.ok) return null;
@@ -87,10 +89,34 @@ async function reverseViaBigDataCloud(lat: number, lon: number): Promise<string 
   }
 }
 
+/** Second keyless provider — some datacenter egress IPs get turned away by the first. */
+async function reverseViaNominatim(lat: number, lon: number): Promise<string | null> {
+  try {
+    const res = await fetchWithTimeout(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&lat=${lat}&lon=${lon}`,
+      { headers: { 'user-agent': UA, accept: 'application/json' } },
+      4500
+    );
+    if (!res.ok) return null;
+    const j = (await res.json()) as { address?: Record<string, string> };
+    const a = j.address || {};
+    const place = a.city || a.town || a.village || a.county || a.state;
+    const cc = (a.country_code || '').toUpperCase();
+    if (!place) return null;
+    return cc ? `${place}, ${cc}` : place;
+  } catch {
+    return null;
+  }
+}
+
+async function reversePlacename(lat: number, lon: number): Promise<string | null> {
+  return (await reverseViaBigDataCloud(lat, lon)) ?? (await reverseViaNominatim(lat, lon));
+}
+
 export async function resolveLocation(
   lat: number,
   lon: number,
-  reverse: (lat: number, lon: number) => Promise<string | null> = reverseViaBigDataCloud
+  reverse: (lat: number, lon: number) => Promise<string | null> = reversePlacename
 ): Promise<Located> {
   const nearest = nearestBaked(lat, lon);
   if (nearest.km <= NEAR_KM) {

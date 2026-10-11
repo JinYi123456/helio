@@ -3,12 +3,11 @@ from __future__ import annotations
 
 import datetime as dt
 
-import httpx
 import numpy as np
 import pandas as pd
 
 from .cities import CITIES
-from .features import climatology_rows
+from .features import climatology_rows, http_get_json
 from .geo import parse_geo_key
 
 DAILY = "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,sunshine_duration,cloud_cover_mean"
@@ -30,9 +29,9 @@ def live_forecast(city_key: str, days: int = 7) -> tuple[pd.DataFrame, dict, str
 
 
 def live_forecast_at(lat: float, lon: float, days: int = 7) -> tuple[pd.DataFrame, dict, str]:
-    resp = httpx.get(
+    data = http_get_json(
         "https://api.open-meteo.com/v1/forecast",
-        params={
+        {
             "latitude": lat,
             "longitude": lon,
             "daily": DAILY,
@@ -42,8 +41,6 @@ def live_forecast_at(lat: float, lon: float, days: int = 7) -> tuple[pd.DataFram
         },
         timeout=8.0,
     )
-    resp.raise_for_status()
-    data = resp.json()
     d = data["daily"]
     df = pd.DataFrame(
         {
