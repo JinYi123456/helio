@@ -67,18 +67,54 @@ async function viaOllama(imageB64: string, prompt: string): Promise<Verdict | nu
   return null;
 }
 
-async function viaOpenAiCompat(dataUrl: string, prompt: string): Promise<Verdict | null> {
-  const t0 = performance.now();
-  const p = llmEndpoint();
-  const model = process.env.HELIO_VISION_MODEL_COMPAT || p.model;
+let _modelCatalog: { at: number; ids: string[] } | null = null;
+let _visionWinner = '';
+
+async function gemmaModelIds(baseURL: string, apiKey: string): Promise<string[]> {
+  if (_modelCatalog && Date.now() - _modelCatalog.at < 10 * 60_000) return _modelCatalog.ids;
   try {
     const res = await fetchWithTimeout(
-      `${p.baseURL.replace(/\/$/, '')}/chat/completions`,
+      `${baseURL.replace(/\/$/, '')}/models`,
+      { headers: { ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}) } },
+      8_000
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as { data?: { id?: string }[] };
+    const ids = (data.data ?? [])
+      .map((m) => m.id ?? '')
+      .filter((id) => /gemma/i.test(id));
+    _modelCatalog = { at: Date.now(), ids };
+    return ids;
+  } catch {
+    return [];
+  }
+}
+
+export function visionCandidates(baseURL: string, apiKey: string, fallbackModel: string): Promise<string[]> {
+  return gemmaModelIds(baseURL, apiKey).then((ids) =>
+    [_visionWinner, process.env.HELIO_VISION_MODEL_COMPAT, fallbackModel, ...ids]
+      .filter((m): m is string => Boolean(m))
+      .filter((m, i, a) => a.indexOf(m) === i)
+  );
+}
+
+/** One image call to one hosted model; the raw Response lets probes report why it failed. */
+export async function hostedVisionAttempt(
+  baseURL: string,
+  apiKey: string,
+  model: string,
+  dataUrl: string,
+  prompt: string,
+  timeoutMs = 120_000
+): Promise<Response | null> {
+  try {
+    return await fetchWithTimeout(
+      `${baseURL.replace(/\/$/, '')}/chat/completions`,
       {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          ...(p.apiKey ? { authorization: `Bearer ${p.apiKey}` } : {}),
+          ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
         },
         body: JSON.stringify({
           model,
@@ -95,16 +131,27 @@ async function viaOpenAiCompat(dataUrl: string, prompt: string): Promise<Verdict
           ],
         }),
       },
-      120_000
+      timeoutMs
     );
-    if (!res.ok) return null;
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const raw = looseJson<RawVerdict>(data.choices?.[0]?.message?.content ?? '');
-    if (!raw) return null;
-    return verdictFromRaw(raw, `${model} · ${p.name} (hosted, open weights)`, Math.round(performance.now() - t0));
   } catch {
     return null;
   }
+}
+
+async function viaOpenAiCompat(dataUrl: string, prompt: string): Promise<Verdict | null> {
+  const t0 = performance.now();
+  const p = llmEndpoint();
+  for (const model of await visionCandidates(p.baseURL, p.apiKey, p.model)) {
+    const res = await hostedVisionAttempt(p.baseURL, p.apiKey, model, dataUrl, prompt);
+    // Some open-weight ids are text-only — a 4xx just means "next candidate".
+    if (!res || !res.ok) continue;
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const raw = looseJson<RawVerdict>(data.choices?.[0]?.message?.content ?? '');
+    if (!raw) continue;
+    _visionWinner = model;
+    return verdictFromRaw(raw, `${model} · ${p.name} (hosted, open weights)`, Math.round(performance.now() - t0));
+  }
+  return null;
 }
 
 /** Judge one photo against one mission. Null when no vision model can be reached. */

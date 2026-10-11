@@ -32,7 +32,7 @@ export const config = {
   visionModel: process.env.HELIO_VISION_MODEL || process.env.HELIO_MODEL || 'gemma4:e2b',
   visionFallbackModel: process.env.HELIO_VISION_FALLBACK || 'gemma3:4b',
   ollamaBaseUrl: (process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434').replace(/\/v1\/?$/, ''),
-  googleApiKey: process.env.GOOGLE_API_KEY || '',
+  googleApiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '',
   googleModel: process.env.GOOGLE_MODEL || 'gemma-4-31b-it',
   openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
   openrouterModel: process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',

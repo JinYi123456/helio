@@ -16,7 +16,7 @@ import { localGround } from './lib/serpapi.js';
 import { captureException, sentryEnabled, withSpan } from './lib/sentry.js';
 import { audioFile, ensureAudio } from './lib/tts.js';
 import { fetchWindow, type DayWindow } from './lib/window.js';
-import { verifyPhoto } from './lib/vision.js';
+import { hostedVisionAttempt, verifyPhoto, visionCandidates } from './lib/vision.js';
 
 const CITY_LABELS: Record<string, string> = {
   'petaling-jaya': 'Petaling Jaya, MY',
@@ -164,6 +164,24 @@ app.post('/api/verify', async (c) => {
   });
   if (!verdict) return c.json({ error: 'no vision model reachable — keep your proof, we will check later' }, 503);
   return c.json(verdict);
+});
+
+/* ── hosted vision probe (?go=1) — reports why each candidate model said no ── */
+
+const dotPng =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+app.get('/api/_diag/vision', async (c) => {
+  if (c.req.query('go') !== '1') return c.json({ hint: 'append ?go=1' });
+  const p = llmEndpoint();
+  const candidates = await visionCandidates(p.baseURL, p.apiKey, p.model);
+  const attempts: unknown[] = [];
+  for (const model of candidates.slice(0, 8)) {
+    const res = await hostedVisionAttempt(p.baseURL, p.apiKey, model, dotPng, 'Reply with the single word ok', 30_000);
+    if (!res) attempts.push({ model, error: 'unreachable' });
+    else attempts.push({ model, status: res.status, body: (await res.text()).slice(0, 240) });
+  }
+  return c.json({ provider: p.name, model: p.model, candidates, attempts });
 });
 
 /* ── journal + memory ───────────────────────────────────────────────── */
