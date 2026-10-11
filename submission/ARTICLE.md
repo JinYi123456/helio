@@ -31,7 +31,8 @@ Between those two poles sits the experience:
 
 - **the dial** — a sun-compass that lights up the best outdoor hours of today
 - **the door** — a Mastra + Gemma *mission compiler* writes you a tiny whispered
-  assignment ("Find the oldest standing thing within walking distance…")
+  assignment ("Find the oldest standing thing within walking distance…"), and a
+  **Temporal workflow** holds that mission on a durable timer until its grass window
 - **the pocket screen** — literally tells you the screen is done now
 - **the proof** — the on-device verdict, stamped with confidence and what the model saw
 - **the journal & meadow** — every verified walk gets a 5-7-5 haiku and grows a meadow
@@ -48,6 +49,7 @@ also survives the wrong photo. Try your keyboard.)*
 
 - **Live:** https://helio-agent.onrender.com (free Render instance — first load may take ~1 min to wake)
 - **Repo:** https://github.com/JinYi123456/helio
+- **60-second walkthrough:** [helio-demo.mp4](https://github.com/JinYi123456/helio/blob/main/submission/assets/helio-demo.mp4) — the whole loop recorded live: the mission compiled by Gemma, held on a Temporal timer, the photo verified on-device, the meadow grown
 - 90-second local run:
 
 ```bash
@@ -78,6 +80,7 @@ Three services, one loop:
 apps/web            Vite + React PWA — dial · door · pocket · proof · journal · meadow
 services/agent      Hono + Mastra — mission compiler agent, vision verifier, haiku, TTS
 services/tabpfn     FastAPI — TabPFN grass-window model + precompute baker
+services/tinker     Python — dataset builder + LoRA fine-tune of Helio's whisper voice
 ```
 
 The grass window is the heart. The whole preference chain is ~20 lines:
@@ -117,11 +120,11 @@ export function verdictFromRaw(raw: unknown, engine: string, ms: number): Verdic
 }
 ```
 
-Tests are the contract: **20 vitest specs** across tools, verdicts, windows and seeds,
-plus **10 pytest specs** for the forecast chain (3 more self-skip until a TabPFN token
-lands — see below). CI runs both on every push, and a daily GitHub Action re-bakes the
-grass windows on the real model and commits the JSON — the free-tier host just serves
-the bake.
+Tests are the contract: **33 vitest specs** across tools, verdicts, windows, seeds and
+the durability layer, plus **13 pytest specs** for the forecast chain (all running
+against the real license-accepted model — see below). CI runs both on every push, and a
+daily GitHub Action re-bakes the grass windows on the real model and commits the JSON —
+the free-tier host just serves the bake.
 
 ## How I Built It
 
@@ -167,6 +170,17 @@ photo, verdict, weather, stamp, tags:
    nothing to an exporter). Verified against exactly what Render runs: every compile is
    now one `gen_ai` trace with token usage — and with no DSN, Sentry never enters the
    process at all.
+7. **A mission is a promise with a deadline — that's a workflow, not a cron.** "Walk when
+   the window opens, prove it before it closes" is exactly the shape Temporal exists for,
+   so every compiled mission starts a `missionLifecycle` workflow: sleep until the
+   TabPFN-picked golden hour, a 6-hour expiry, and one `markDone` signal the verifier
+   fires when your photo passes. The workflow races `sleep()` against `condition(done)`
+   and honestly returns `"verified"` or `"missed"`. Verified for real: a mission that
+   signalled during its sleep completed as `Result: "verified"` (2m33s wall time, timer
+   cancelled), and a probe workflow woke at its golden hour, POSTed a `ripe` event back
+   into the agent, then closed as `"missed"` — all visible in the Temporal UI. With no
+   `TEMPORAL_ADDRESS`, the mission still compiles and the API says
+   `lifecycle: { scheduled: false }` — leaf node, as promised.
 
 ## What It Can't Do (Yet)
 
@@ -186,6 +200,10 @@ Honest limits, because the meadow only grows on verified walks:
   kettle on while it judges your grass.
 - **No accounts, no cross-device sync** unless you point it at MongoDB Atlas; photos and
   logs live in your browser's IndexedDB, exportable and burnable by you.
+- **The hosted demo doesn't run a Temporal cluster.** Durable lifecycle timers need a
+  Temporal server next to the worker (`temporal server start-dev` + `npm run
+  temporal:worker`); on the hosted build `/api/health` reports `temporal: false` and
+  missions are simply not scheduled — everything else works.
 
 ## Why Does Open Innovation Matter?
 
@@ -245,9 +263,9 @@ them degrades gracefully when absent — try removing any):
 | **SerpApi** | "What's in season right now" ground notes folded into missions. |
 | **MongoDB Atlas** | Field memory over walk notes — `$vectorSearch` when configured, RAM otherwise. |
 | **Sentry** | Real agent tracing: a DSN-gated `--import` preload wires runtime instrumentation, so every mission compile lands in Sentry as one trace — `http.server → mission.compile → gen_ai.invoke_agent → gen_ai.chat → http.client` — with model name, input messages and token usage as `gen_ai.*` attributes. API errors are captured too. |
-| **Tinker** | *In progress* — a LoRA on helio's whisper voice via Tinker's free credits. |
-| **Temporal** | *Investigating* — durable mission lifecycle orchestration. |
-| **Tiger Data** | *Investigating* — time-series walk history. |
+| **Tinker** | Helio's whisper voice as a trainable artifact: `services/tinker/` distills the hand-written field corpus into context→whisper pairs and fine-tunes a small open-weight model over Tinker's SDK; the agent then samples whispers through Tinker's OpenAI-compatible endpoint. Wired end-to-end and env-gated — the training run is waiting on the account's billing/credit activation. |
+| **Temporal** | The durable mission lifecycle: every mission is a `missionLifecycle` workflow — timer to the TabPFN-picked golden hour, 6-hour expiry, `markDone` signal from the verifier. Verified locally end-to-end: signal → `Result: "verified"`; timer → `ripe` + `missed` events posted back to the agent. No `TEMPORAL_ADDRESS`? The mission compiles anyway, honestly unscheduled. |
+| **Tiger Data** | The time-series shadow of the meadow: walks land in a `footprints` hypertable (TimescaleDB, via `pg`) and `GET /api/footprints` returns the server-side 7-day series. Wired end-to-end and env-gated: no `TIGER_URL` → the endpoint answers `{enabled:false}` and the app is untouched; with a URL it's one key away. |
 | **DigitalOcean** | Not used this week — Render carries the hosted demo. |
 | **Backboard** | Not used — Helio's memory layer must run offline-first; a hosted control plane is against the grain. |
 | **Entire** | Not used. |

@@ -12,6 +12,8 @@ mode, zero signal. No account. No upload. Nothing to sign up for.
 
 Built for the **DEV × Hacktoberfest Open Source AI Challenge** — Week 1: *Touch Grass*.
 
+**Live demo:** [helio-agent.onrender.com](https://helio-agent.onrender.com) (free instance — first load may take ~1 min) · **60-second walkthrough:** [helio-demo.mp4](submission/assets/helio-demo.mp4)
+
 ---
 
 ## The loop
@@ -38,13 +40,16 @@ grass — except the owl is a small green sprout and the streak burns nobody.
 ┌──────────────────────────────▼──────── services/agent — Hono + Mastra ────────┐
 │  mission compiler agent ─ tools: grass window · local ground · field memory   │
 │  vision verifier: Gemma via Ollama (or any OpenAI-compatible endpoint)        │
+│  whisper: Tinker-sampled LoRA (→ compiler whisper)                            │
 │  haiku journal · ElevenLabs whisper (→ browser voice) · MongoDB memory (→ RAM)│
+│  footprints → Tiger Data (→ /api/footprints says enabled:false)               │
 └──────────────────────────────┬────────────────────────────────────────────────┘
-                               │  TABPFN_URL
-┌──────────────────────────────▼──────── services/tabpfn — FastAPI ─────────────┐
-│  TabPFN in-context over 10 years of open-meteo history → grass window scores  │
-│  chain: live forecast → precomputed JSON (daily GH Action bake) → heuristic   │
-└──────────────────────────────────────────────────────────────────────────────┘
+              │ TABPFN_URL                      │ TEMPORAL_ADDRESS (durable timer)
+┌─────────────▼────────────────┐  ┌─────────────▼─────────────────────────────────┐
+│ services/tabpfn — FastAPI    │  │ Temporal worker — missionLifecycle workflow   │
+│  TabPFN in-context over 10y  │  │  sleep until golden hour · markDone signal ·  │
+│  → grass window scores       │  │  6h expiry → ripe / missed events             │
+└──────────────────────────────┘  └───────────────────────────────────────────────┘
 ```
 
 Every dependency is optional by design — pull the plug on any one of them and Helio keeps
@@ -55,6 +60,9 @@ working, honestly labelled:
 - **LLM down** → a hand-written seed mission walks in (and says so)
 - **TTS down** → the browser reads the whisper
 - **MongoDB absent** → field memory lives in RAM
+- **Temporal absent** → the mission compiles unscheduled (`lifecycle: {scheduled:false}`)
+- **Tinker absent** → the compiler's own whisper is used
+- **Tiger absent** → `/api/footprints` answers `{enabled:false}`; the meadow is untouched
 - **no camera** → keep the proof and upload a photo instead
 
 ## Partner tech — used hard, never required
@@ -69,6 +77,9 @@ working, honestly labelled:
 | **SerpApi** | "what's in season right now" ground notes | skipped, whisper stays local |
 | **MongoDB Atlas** | field memory with `$vectorSearch` over walk notes | in-memory ring buffer |
 | **Sentry** | AI agent tracing — runtime instrumentation turns every mission compile into a `gen_ai.invoke_agent → gen_ai.chat` trace with token usage | no telemetry |
+| **Temporal** | durable mission lifecycle — timer to the golden hour, `markDone` signal from the verifier, 6h expiry → `ripe`/`missed` events | missions compile unscheduled |
+| **Tinker** | Helio's whisper voice as a trainable artifact — `services/tinker/` builds context→whisper pairs and LoRA-fine-tunes a small open-weight model; the agent samples through Tinker's OpenAI-compatible endpoint | compiler's own whisper |
+| **Tiger Data** | time-series footprints — walks land in a TimescaleDB hypertable, `GET /api/footprints` serves the 7-day series | endpoint reports `enabled:false` |
 | **open-meteo** | 10y history + live forecast (free, no key) | bundled CSVs |
 
 ## Quickstart (5 minutes, zero cost)
@@ -94,8 +105,8 @@ Or run everything with one command once `.env` exists: `npm run dev`.
 ## Tests
 
 ```bash
-npm test                              # agent: 20 vitest specs (tools, verdicts, windows, seeds)
-npm run test:py                       # tabpfn: 10 passed, 3 model tests skip without TABPFN_TOKEN
+npm test                              # agent: 33 vitest specs (tools, verdicts, windows, seeds, temporal, tiger, tinker)
+npm run test:py                       # tabpfn: 13 pytest specs over the forecast chain (3 skip until the one-time license is accepted)
 npm run build:all                     # tsc + vite build, both services
 ```
 
