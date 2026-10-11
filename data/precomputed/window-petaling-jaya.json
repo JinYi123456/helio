@@ -7,97 +7,97 @@
       "date": "2026-10-11",
       "label": "Oct 11",
       "weekday": "Sun",
-      "score": 0.5397,
+      "score": 0.0,
       "hours": [
-        10,
-        11
+        6,
+        7
       ],
       "source": "live",
       "tMax": 31.7,
-      "tMin": 24.2,
-      "precip": 10.2,
-      "cloud": 98.0
+      "tMin": 24.8,
+      "precip": 15.6,
+      "cloud": 97.0
     },
     {
       "date": "2026-10-12",
       "label": "Oct 12",
       "weekday": "Mon",
-      "score": 0.6413,
+      "score": 0.0,
       "hours": [
-        10,
-        11
+        8,
+        9
       ],
       "source": "live",
-      "tMax": 31.6,
-      "tMin": 23.3,
-      "precip": 23.9,
-      "cloud": 87.0
+      "tMax": 31.3,
+      "tMin": 23.5,
+      "precip": 19.4,
+      "cloud": 92.0
     },
     {
       "date": "2026-10-13",
       "label": "Oct 13",
       "weekday": "Tue",
-      "score": 0.6455,
+      "score": 0.0001,
       "hours": [
-        8,
-        9
+        9,
+        10
       ],
       "source": "live",
-      "tMax": 31.4,
-      "tMin": 23.8,
-      "precip": 8.1,
-      "cloud": 83.0
+      "tMax": 30.9,
+      "tMin": 23.2,
+      "precip": 19.0,
+      "cloud": 86.0
     },
     {
       "date": "2026-10-14",
       "label": "Oct 14",
       "weekday": "Wed",
-      "score": 0.65,
+      "score": 0.0001,
       "hours": [
-        8,
-        9
+        7,
+        8
       ],
       "source": "live",
       "tMax": 31.6,
-      "tMin": 23.7,
-      "precip": 2.9,
-      "cloud": 62.0
+      "tMin": 23.8,
+      "precip": 4.3,
+      "cloud": 80.0
     },
     {
       "date": "2026-10-15",
       "label": "Oct 15",
       "weekday": "Thu",
-      "score": 0.65,
+      "score": 0.0005,
       "hours": [
-        8,
-        9
+        7,
+        8
       ],
       "source": "live",
-      "tMax": 32.1,
-      "tMin": 24.2,
-      "precip": 5.7,
-      "cloud": 62.0
+      "tMax": 32.0,
+      "tMin": 24.0,
+      "precip": 6.0,
+      "cloud": 47.0
     },
     {
       "date": "2026-10-16",
       "label": "Oct 16",
       "weekday": "Fri",
-      "score": 0.65,
+      "score": 0.0002,
       "hours": [
-        10,
-        11
+        9,
+        10
       ],
       "source": "live",
-      "tMax": 32.1,
-      "tMin": 24.0,
-      "precip": 4.8,
-      "cloud": 49.0
+      "tMax": 32.3,
+      "tMin": 23.7,
+      "precip": 5.7,
+      "cloud": 61.0
     },
     {
       "date": "2026-10-17",
       "label": "Oct 17",
       "weekday": "Sat",
-      "score": 0.65,
+      "score": 0.0001,
       "hours": [
         6,
         7
@@ -105,15 +105,15 @@
       "source": "live",
       "tMax": 32.2,
       "tMin": 24.3,
-      "precip": 6.0,
-      "cloud": 55.0
+      "precip": 6.3,
+      "cloud": 63.0
     }
   ],
   "fit": {
-    "contextRows": 0,
+    "contextRows": 730,
     "personalRows": 0,
-    "labelRate": 0.0
+    "labelRate": 0.1151
   },
-  "generatedAt": "2026-10-10T19:31:20.017501+00:00",
-  "bakedAt": "2026-10-11T10:52:52.271917+00:00"
+  "generatedAt": "2026-10-11T06:32:35.259339+00:00",
+  "bakedAt": "2026-10-11T06:32:35.260940+00:00"
 }
