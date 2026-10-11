@@ -25,7 +25,7 @@ Reviewing the loop visually — the dial that reads a decade of weather, the doo
 you one whisper, the pocket screen that sends you away, the stamp that only a real photo
 earns:
 
-![helio's dial — today's grass window and the seed card](./assets/01-dial.png)
+![helio's dial — today's grass window and the seed card](https://raw.githubusercontent.com/JinYi123456/helio/main/submission/assets/01-dial.png)
 
 Between those two poles sits the experience:
 
@@ -65,16 +65,16 @@ npm run dev
 On a laptop with no camera, the proof screen falls back to file upload — the app treats
 that as a first-class path, not an error.
 
-![the door — one whisper, one proof criterion](./assets/02-door.png)
+![the door — one whisper, one proof criterion](https://raw.githubusercontent.com/JinYi123456/helio/main/submission/assets/02-door.png)
 
-![the pocket screen — the product that asks to be put away](./assets/03-pocket.png)
+![the pocket screen — the product that asks to be put away](https://raw.githubusercontent.com/JinYi123456/helio/main/submission/assets/03-pocket.png)
 
-![the stamp — a real sprout photo, judged on-device at 95%](./assets/05-stamp.png)
+![the stamp — a real sprout photo, judged on-device at 95%](https://raw.githubusercontent.com/JinYi123456/helio/main/submission/assets/05-stamp.png)
 
 The meadow only grows on verified walks — twelve species to meet, one streak to keep
 alive without lying:
 
-![the meadow and the species dex](./assets/07-meadow.png)
+![the meadow and the species dex](https://raw.githubusercontent.com/JinYi123456/helio/main/submission/assets/07-meadow.png)
 
 ## Code
 
@@ -140,7 +140,7 @@ failure from the build log (kept in `docs/building-log.md`).
 And when the walk ends, the local model writes it a 5-7-5 haiku and files it away —
 photo, verdict, weather, stamp, tags:
 
-![the field journal — one verified page](./assets/06b-journal-sheet.png)
+![the field journal — one verified page](https://raw.githubusercontent.com/JinYi123456/helio/main/submission/assets/06b-journal-sheet.png)
 
 1. **TabPFN's weights are license-gated.** The first server boot tried to open a browser
    for a one-time license acceptance at 2 AM — and hung waiting on stdin. A server must
@@ -243,7 +243,7 @@ agent as an accountable colleague rather than an autocomplete:
   research rather than in code.
 - **Everything ran for real.** No mocked model calls. The full loop was walked in a
   browser against real services — the screenshots in this post are that session, including
-  a real sprout photo stamped **95% sure, checked in 44.5s on CPU** — and a keyboard photo
+  a real sprout photo stamped **95% sure, checked in 42s on CPU** — and a keyboard photo
   was **correctly rejected** on an earlier pass.
 - **Errors became features.** The three nastiest bugs (license-gated weights, thinking
   token burn, StrictMode race) each ended up *shaping the architecture* — the cooldown,
