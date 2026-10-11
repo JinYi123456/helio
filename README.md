@@ -20,7 +20,7 @@ Built for the **DEV × Hacktoberfest Open Source AI Challenge** — Week 1: *Tou
 
 | | screen | what happens |
 |---|---|---|
-| 01 | **dial** | TabPFN reads a decade of your city's weather and draws the best outdoor hours today |
+| 01 | **dial** | TabPFN reads a decade of weather for your city (one-tap *use my location*) and draws the best outdoor hours today |
 | 02 | **door** | the mission compiler (Mastra + Gemma) writes you a tiny whispered assignment |
 | 03 | **pocket** | put the phone away — the screen is done now |
 | 04 | **proof** | photograph what you found; an on-device vision model passes or fails it |

@@ -29,7 +29,8 @@ earns:
 
 Between those two poles sits the experience:
 
-- **the dial** — a sun-compass that lights up the best outdoor hours of today
+- **the dial** — a sun-compass that lights up the best outdoor hours of today; one tap on
+  *use my location* pins the nearest supported sky
 - **the door** — a Mastra + Gemma *mission compiler* writes you a tiny whispered
   assignment ("Find the oldest standing thing within walking distance…"), and a
   **Temporal workflow** holds that mission on a durable timer until its grass window
@@ -190,7 +191,9 @@ Honest limits, because the meadow only grows on verified walks:
   authorship — no location attestation, no sensor checks. A determined cheater with a
   stock photo of moss could still fool it. Helio is a nudge with a memory, not a cop.
 - **The hosted demo covers three cities.** The model itself takes any city; Petaling
-  Jaya, Seattle and Zürich are what the free-tier bake keeps fresh.
+  Jaya, Seattle and Zürich are what the free-tier bake keeps fresh. Tap *use my
+  location* and Helio picks whichever is nearest — with an honest distance note when
+  you're far from all three.
 - **The deployed window service serves precomputed scores.** Torch doesn't fit a 512MB
   free instance, so the real model runs in the daily GitHub Action bake and the service
   recomputes live forecasts on top — the `served` field always tells you which layer

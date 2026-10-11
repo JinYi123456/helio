@@ -96,3 +96,56 @@ ElevenLabs · SerpApi · MongoDB · Sentry. Core promise: photos never leave the
   with model name, input messages and token usage riding along as `gen_ai.*` attributes.
 - The knob that made this debuggable stays in: `HELIO_SENTRY_DEBUG=1` prints span
   lifecycles to the server log.
+
+## 08 · temporal — a mission is a promise with a deadline
+
+- "Walk when the window opens, prove it before it closes" is exactly the shape Temporal
+  exists for, so every compiled mission starts a `missionLifecycle` workflow: sleep until
+  the TabPFN-picked golden hour, a 6-hour expiry, one `markDone` signal the verifier fires.
+  The workflow races `sleep()` against `condition(done)` and returns `"verified"` or
+  `"missed"` honestly.
+- Verified for real: a mission that signalled during its sleep completed as
+  `Result: "verified"` (2m33s wall time, timer cancelled); a probe workflow woke at its
+  golden hour, POSTed a `ripe` event back into the agent, then closed as `"missed"` — all
+  visible in the Temporal UI.
+- Leaf node: with no `TEMPORAL_ADDRESS`, the mission still compiles and the API says
+  `lifecycle: { scheduled: false }`.
+
+## 09 · tiger data — the time-series shadow of the meadow
+
+- Walks land in a `footprints` hypertable (TimescaleDB, via `pg`) and
+  `GET /api/footprints` serves the server-side 7-day series. Verified locally end-to-end.
+- Env-gated: no `TIGER_URL` → the endpoint answers `{enabled:false}` and the meadow never
+  notices. Wired end-to-end, one key away.
+
+## 10 · tinker — the whisper as a trainable artifact
+
+- `services/tinker/` distills the hand-written field corpus into context→whisper pairs and
+  LoRA-fine-tunes a small open-weight model via Tinker's SDK; the agent samples whispers
+  through Tinker's OpenAI-compatible endpoint.
+- Fully wired and env-gated, with the honest status in the article: the training run is
+  waiting on the account's billing/credit activation, so today the compiler's own whisper
+  answers — and says so.
+
+## 11 · the UI audit day — three bugs a screenshot would have shipped
+
+- Swept every screen in three walker contexts (pass path, keyboard-fail path, offline
+  path) plus desktop 1280 and narrow 320: programmatic checks for horizontal overflow,
+  spills past the viewport, sibling overlaps in key rows, out-of-box children and SVG
+  viewBox clipping — 40+ screenshots, a machine-readable report, zero findings left.
+- **Dead end #7**: the screen-entrance animation used fill-mode `both`, and a *finished*
+  transform animation still counts as a containing block for `position:fixed` descendants
+  (computed `matrix(1,0,0,1,0,0)` ≠ `none`). The bottom nav and the journal sheet anchored
+  to the bottom of the *page* instead of the viewport — invisible on any screen taller
+  than the fold. Diagnosed by walking the ancestor chain's computed styles in a live
+  probe; fix is fill-mode `backwards`.
+- **Dead end #8**: the dial sprout's CSS sway animation override the SVG positioning
+  `transform` attribute outright — the sprout rendered ~189 viewBox units outside the
+  frame, invisibly. Fix: positioning moved to an outer `<g>`, the animation lives on an
+  inner `<g>` with `transform-box: fill-box` so it pivots in place.
+- Also caught by the same sweep: hour labels clipped at the viewBox edge (padded the
+  viewBox), and the seed card's raw `0/100` TabPFN score — honest on a rainy week, but it
+  reads as broken — replaced with the hour window (`Sun · 06:00–08:00`).
+- New in the same pass: one-tap **use my location** in settings — browser permission →
+  nearest baked city, with an honest distance note when you're far from all three.
+  Tested on all three paths: near, far, and denied.
