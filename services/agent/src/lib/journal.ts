@@ -38,7 +38,8 @@ export async function writeHaiku(input: {
               ].join('\n'),
             },
           ],
-          { temperature: 0.9, maxTokens: 320 }
+          // Thinking models burn much of the budget on <thought> before the poem.
+          { temperature: 0.9, maxTokens: 1000 }
         ),
       { 'gen_ai.system': p.name, 'gen_ai.request.model': p.model }
     );
